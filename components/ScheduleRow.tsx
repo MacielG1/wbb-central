@@ -4,7 +4,9 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Event, Competitor } from '@/types/espn';
-import {  useState } from 'react';
+import { useEffect, useState } from 'react';
+import getFavorites from '@/lib/getFavorites';
+import fetchTeamData from '@/utils/fetchTeamData';
 import { useRouter } from 'next/navigation';
 import { StarIcon } from 'lucide-react';
 
@@ -35,10 +37,9 @@ interface TeamDisplayProps {
   otherTeamScore: string | undefined;
   league: string;
   isFavorite?: boolean;
-  tRank?: number | null;
 }
 
-function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInProgress, otherTeamScore, league, isFavorite, tRank }: TeamDisplayProps) {
+function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInProgress, otherTeamScore, league, isFavorite }: TeamDisplayProps) {
   const getRecord = (competitor: Competitor) => {
     const record = competitor.records?.find((r) => r.type === 'total');
     return record?.summary || '0-0';
@@ -84,11 +85,6 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
           </Link>
           <div className="flex items-center">
             <span className="text-xs text-neutral-500 ml-2 whitespace-nowrap pt-[1px]">{getRecord(competitor)}</span>
-            {tRank ? (
-              <span className="text-xs text-neutral-800 dark:text-neutral-300 ml-1 whitespace-nowrap pt-[1px]">
-                ({tRank})
-              </span>
-            ) : null}
             {isFavorite && <StarIcon className="w-3.5 h-3.5 ml-2 text-[#bc7200] fill-current" />}
           </div>
         </div>
@@ -111,12 +107,30 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
   );
 }
 
-export default function ScheduleRow({ game, league, showOnlyTop25 = false, tRankMap = {} }: ScheduleRowProps) {
+export default function ScheduleRow({ game, league, showOnlyTop25 = false}: ScheduleRowProps) {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const competition = game.competitions[0];
   const homeTeam = competition.competitors.find((team: Competitor) => team.homeAway === 'home');
   const awayTeam = competition.competitors.find((team: Competitor) => team.homeAway === 'away');
   const router = useRouter();
+
+  useEffect(() => {
+    const favs = getFavorites();
+    setFavorites(favs);
+    const homeTeamId = homeTeam?.team?.id;
+    const awayTeamId = awayTeam?.team?.id;
+    const isHomeTeamFavorite = homeTeamId ? favs[homeTeamId] : false;
+    const isAwayTeamFavorite = awayTeamId ? favs[awayTeamId] : false;
+
+    // Prefetch favorite teams' data
+    if (isHomeTeamFavorite || isAwayTeamFavorite) {
+      const teamsToFetch = [];
+      if (isHomeTeamFavorite && homeTeamId) teamsToFetch.push(homeTeamId);
+      if (isAwayTeamFavorite && awayTeamId) teamsToFetch.push(awayTeamId);
+
+      Promise.all(teamsToFetch.map((id) => fetchTeamData(id))).catch((error) => console.error('Error prefetching favorite teams:', error));
+    }
+  }, [homeTeam?.team?.id, awayTeam?.team?.id]);
 
   if (!homeTeam || !awayTeam) return null;
 
@@ -208,7 +222,6 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false, tRank
           otherTeamScore={isPostponed ? undefined : homeTeam.score || '0'}
           league={league}
           isFavorite={favorites[awayTeam.team.id]}
-          tRank={tRankMap[awayTeam.team.id]}
         />
         <TeamDisplay
           team={homeTeam.team}
@@ -223,7 +236,6 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false, tRank
           otherTeamScore={isPostponed ? undefined : awayTeam.score || '0'}
           league={league}
           isFavorite={favorites[homeTeam.team.id]}
-          tRank={tRankMap[homeTeam.team.id]}
         />
       </div>
 

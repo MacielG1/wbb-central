@@ -2,13 +2,13 @@ import NavbarScores from '@/components/NavbarScores';
 import DateSelector from '@/components/DateSelector';
 import fetchLeagueSchedule from '@/utils/fetchLeagueSchedule';
 import type { APIResponse } from '@/types/espn';
+import NationalRankings from '@/components/Rankings/NCAAWNationalRankings';
 import { Suspense } from 'react';
-import ScheduleWrapper from '@/components/ScheduleWrapper';
-import Link from 'next/link';
-import { TableProperties } from 'lucide-react';
+import RankingsDisplaySkeleton from '@/components/Rankings/RankingsDisplaySkeleton';
 import { Metadata } from 'next';
+import TeamSelector from '@/components/TeamSelector';
 import { fetchAllTeamIds } from '@/utils/fetchAllTeamIds';
-import { Table } from '@/components/icons/Table';
+import Schedule from '@/components/Schedule';
 
 export type SearchParamsType = Promise<{ date?: string }>;
 export type ParamsType = Promise<{ league: string }>;
@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: { params: ParamsType }): Prom
   const leagueName = league.toUpperCase();
 
   return {
-    title: `${leagueName} Basketball - Live Scores & Schedule`,
+    title: `${leagueName} Basketball`,
     description: `Live basketball scores, schedules, rankings and stats for ${leagueName} games.`,
     openGraph: {
-      title: `${leagueName} Basketball - Live Scores & Schedule`,
+      title: `${leagueName} Basketball`,
       description: `Live basketball scores, schedules, rankings and stats for ${leagueName} games.`,
     },
   };
@@ -42,21 +42,6 @@ export default async function LeaguePage(props: { searchParams: SearchParamsType
   const data = (await fetchLeagueSchedule(currentDate)) as APIResponse;
   const teamsIds = await fetchAllTeamIds();
 
-  const nextDate = new Date(currentDate);
-  nextDate.setDate(nextDate.getDate() + 1);
-  const prevDate = new Date(currentDate);
-  prevDate.setDate(prevDate.getDate() - 1);
-
-  // Prefetch data in parallel in the background
-  const prefetchPromise = Promise.all([
-    fetchLeagueSchedule(nextDate.toISOString().split('T')[0]),
-    fetchLeagueSchedule(prevDate.toISOString().split('T')[0]),
-  ]).catch(console.error);
-
-  // Don't await the prefetch - let it run in the background
-  prefetchPromise;
-
-
   return (
     <main>
       <Suspense fallback={null}>
@@ -70,9 +55,20 @@ export default async function LeaguePage(props: { searchParams: SearchParamsType
                 <DateSelector league={data.leagues[0]} />
               </Suspense>
             </div>
+            <div>
+              <Suspense fallback={null}>
+                <TeamSelector allTeams={teamsIds} league={league} maxWidth="max-w-[240px] z-[9999]" />
+              </Suspense>
+            </div>
           </div>
 
-          <ScheduleWrapper events={data.events} league={data.leagues[0].abbreviation.toLowerCase()} />
+          <Schedule events={data.events} league={data.leagues[0].abbreviation.toLowerCase()} />
+        </div>
+
+        <div className="w-full lg:w-72 xl:w-80 shrink-0 justify-self-end">
+          <Suspense fallback={<RankingsDisplaySkeleton />}>
+            <NationalRankings />
+          </Suspense>
         </div>
       </div>
     </main>

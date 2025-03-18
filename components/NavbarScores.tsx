@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import getFavorites from '@/lib/getFavorites';
 
 interface Competitor {
   id: string;
@@ -67,7 +68,11 @@ export default function NavbarScores({ data }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [favorites, setFavorites] = useState<Record<string, any>>({});
 
+  useEffect(() => {
+    setFavorites(getFavorites());
+  }, []);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -159,6 +164,8 @@ export default function NavbarScores({ data }: Props) {
               if (!homeTeam || !awayTeam) return null;
 
               const gameStatus = getGameStatus(competition);
+              const isHomeTeamFavorite = homeTeam.team.id ? favorites[homeTeam.team.id] : false;
+              const isAwayTeamFavorite = awayTeam.team.id ? favorites[awayTeam.team.id] : false;
 
               return (
                 <div key={event.id} className={cn('flex flex-col border-r border-neutral-700 first:pl-0 px-3 py-0.5 min-w-[180px]')}>
@@ -197,10 +204,10 @@ export default function NavbarScores({ data }: Props) {
                             <Tooltip>
                               <TooltipTrigger asChild className="cursor-pointer">
                                 <span className="text-sm flex gap-1 break-words min-w-0">
-                                    <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0')}>
+                                  <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isAwayTeamFavorite && 'text-[#bc7200]')}>
                                     {awayTeam.curatedRank?.current && awayTeam.curatedRank.current !== 99 ? `${awayTeam.curatedRank.current} ` : ''}
                                   </span>
-                                  <span className={cn('break-all text-[0.8rem] truncate')}>{awayTeam.team.shortDisplayName}</span>
+                                  <span className={cn('break-all text-[0.8rem] truncate', isAwayTeamFavorite && 'text-[#bc7200]')}>{awayTeam.team.shortDisplayName}</span>
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="p-1 text-sm">
@@ -242,10 +249,10 @@ export default function NavbarScores({ data }: Props) {
                             <Tooltip>
                               <TooltipTrigger asChild className="cursor-pointer">
                                 <span className="text-sm flex gap-1 break-words min-w-0">
-                                  <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0')}>
+                                  <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isHomeTeamFavorite && 'text-[#bc7200]')}>
                                     {homeTeam.curatedRank?.current && homeTeam.curatedRank.current !== 99 ? `${homeTeam.curatedRank.current} ` : ''}
                                   </span>
-                                  <span className={cn('break-all text-[0.8rem] truncate')}>{homeTeam.team.shortDisplayName}</span>
+                                  <span className={cn('break-all text-[0.8rem] truncate', isHomeTeamFavorite && 'text-[#bc7200]')}>{homeTeam.team.shortDisplayName}</span>
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="p-1 text-sm">
