@@ -5,7 +5,7 @@ export default async function fetchTeamSchedule(teamId: string) {
   cacheLife('hours');
 
   async function attemptFetch() {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/teams/${teamId}/schedule`);
+    const res = await fetch(`${process.env.FETCH_TEAM_SCHEDULE_URL}/${teamId}/schedule`);
     if (!res.ok) {
       throw new Error(`Failed to fetch team schedule: ${res.statusText}`);
     }

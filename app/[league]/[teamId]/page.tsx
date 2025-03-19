@@ -12,26 +12,6 @@ import Image from 'next/image';
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 
-interface ConferenceEntry {
-  team: {
-    id: string;
-    displayName: string;
-    logos?: { href: string }[];
-  };
-  stats: {
-    name: string;
-    displayName: string;
-    type: string;
-    value: number;
-    displayValue: string;
-    summary?: string;
-  }[];
-}
-
-interface ConferenceStanding {
-  entries: ConferenceEntry[];
-}
-
 export type paramsType = Promise<{ teamId: string; league: string }>;
 
 export async function generateMetadata({ params }: { params: paramsType }): Promise<Metadata> {
@@ -60,7 +40,7 @@ export default async function TeamPage(props: { params: paramsType }) {
       <section className="w-full mx-auto  p-2 md:p-3 xl:p-2 2xl:p-6 border-r border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <Image
-            src={teamData.team.logo}
+            src={teamData?.team?.logos?.[0]?.href}
             alt={''}
             unoptimized
             priority

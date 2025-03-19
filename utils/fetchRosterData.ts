@@ -5,7 +5,7 @@ export default async function fetchRosterData(teamId: string) {
   cacheLife('hours');
 
   async function attemptFetch() {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/teams/${teamId}/athletes/statistics`, {
+    const res = await fetch(`${process.env.FETCH_ROSTER_DATA_URL}/${teamId}/athletes/statistics`, {
     });
     if (!res.ok) {
       throw new Error(`Failed to fetch roster data: ${res.statusText}`);

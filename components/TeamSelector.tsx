@@ -28,7 +28,6 @@ export default function TeamSelector({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedTeam = teamId ? allTeams.find((team) => team.id === teamId) : null;
-  const selectedTeamLogoIndex = selectedTeam && DARK_COLORED_LOGOS.includes(selectedTeam.displayName) ? 1 : 0;
 
   const favorites = getFavorites();
 

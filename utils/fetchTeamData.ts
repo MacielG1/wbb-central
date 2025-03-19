@@ -4,10 +4,10 @@ import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 export default async function fetchTeamData(teamId: string) {
   'use cache';
-  cacheLife('minutes');
+  cacheLife('hours');
 
   async function attemptFetch() {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/teams/${teamId}`, {
+    const res = await fetch(`${process.env.FETCH_TEAM_DATA_URL}/${teamId}`, {
       cache: 'no-store',
       next: {
         // revalidate: 3600,

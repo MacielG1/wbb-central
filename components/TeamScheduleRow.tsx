@@ -104,7 +104,6 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
   const logoRef = useRef<HTMLDivElement>(null);
   const teamRef = useRef<HTMLDivElement>(null);
 
-  // Memoize competition data to avoid recalculation on re-renders
   const { 
     competition, 
     currentTeam, 

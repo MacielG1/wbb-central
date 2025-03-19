@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import ScheduleRow from './ScheduleRow';
 import { Competitor } from '@/types/espn';
 import { get, set } from 'idb-keyval';
 import LoadingSpinner from './LoadingSpinner';
 import { Switch } from '@/components/ui/switch';
 import getFavorites from '@/lib/getFavorites';
-import { useRouter } from 'next/navigation';
 
 
 interface FilterToggleProps {
@@ -38,8 +37,6 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
   const [showOnlyTop25, setShowOnlyTop25] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState(initialEvents);
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
   // Load the value from IndexedDB on mount
   useEffect(() => {
@@ -61,7 +58,6 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
   }, [initialEvents]);
 
 
-  // No need for useCallback with React Compiler
   function handleToggle() {
     const newValue = !showOnlyTop25;
     setShowOnlyTop25(newValue);
@@ -120,7 +116,7 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
         showOnlyTop25={showOnlyTop25} 
         onToggle={handleToggle} 
       />
-      <div className="grid grid-cols-1 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:mt-5 2xl:mt-0">
         {showOnlyTop25 && hasNoGamesToShow ? (
           <div className="col-span-full p-4 text-center text-neutral-600 dark:text-neutral-400">No Top 25 or favorite team games scheduled</div>
         ) : events.length === 0 ? (

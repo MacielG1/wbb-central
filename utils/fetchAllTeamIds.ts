@@ -3,7 +3,7 @@ interface Team {
 }
 
 export async function fetchAllTeamIds() {
-  const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/teams?limit=500', {
+  const response = await fetch(`${process.env.FETCH_ALL_TEAM_IDS_URL}?limit=500`, {
     next: {
       revalidate: 60 * 60 * 24 * 365, // 1 year
     },

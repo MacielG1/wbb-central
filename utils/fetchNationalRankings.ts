@@ -6,7 +6,7 @@ export default async function fetchNationalRankings() {
   cacheLife('hours');
 
   async function attemptFetch() {
-    const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/rankings', {});
+    const res = await fetch(`${process.env.FETCH_NATIONAL_RANKINGS_URL}`, {});
     if (!res.ok) {
       throw new Error(`Failed to fetch national rankings: ${res.statusText}`, { cause: res });
     }

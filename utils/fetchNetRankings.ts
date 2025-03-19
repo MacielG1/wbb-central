@@ -64,7 +64,7 @@ export async function fetchNetRankings(): Promise<NetRankingsResponse> {
       lastUpdated,
     };
   } catch (error) {
-    console.error('Error fetching Bart Torvik rankings:', error);
+    console.error('Error fetching BT rankings:', error);
     return {
       rankings: [],
       lastUpdated: '',

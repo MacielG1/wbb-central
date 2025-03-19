@@ -38,6 +38,27 @@ export default function DateSelector({ league }: DateSelectorProps) {
     return date;
   });
 
+  // Find closest date in available dates
+  function findClosestAvailableDate(targetDate: Date, availableDates: Date[]) {
+    // First check if the exact date exists
+    const exactMatch = availableDates.find(date => 
+      date.toDateString() === targetDate.toDateString());
+    
+    if (exactMatch) return exactMatch;
+    
+    // If no exact match, find closest date
+    return availableDates.reduce((closest, date) => {
+      const currentDiff = Math.abs(date.getTime() - targetDate.getTime());
+      const closestDiff = Math.abs(closest.getTime() - targetDate.getTime());
+      return currentDiff < closestDiff ? date : closest;
+    }, availableDates[0]);
+  }
+
+  // Get the closest available date to the current date
+  const closestAvailableDate = availableDates.length > 0 
+    ? findClosestAvailableDate(currentDate, availableDates) 
+    : null;
+
   // Format date for URL (YYYY-MM-DD format)
   function formatDateForUrl(date: Date) {
     const year = date.getFullYear();
@@ -102,12 +123,12 @@ export default function DateSelector({ league }: DateSelectorProps) {
         block: 'nearest',
       });
     }
-  }, []);
+  }, [currentDate, closestAvailableDate]);
 
   // Set up ResizeObserver to detect when container is ready
   useEffect(() => {
     if (!scrollContainerRef.current) return;
-    
+   
     // Mark content as ready after a short delay to ensure DOM is stable
     const readyTimer = setTimeout(() => {
       setIsContentReady(true);
@@ -162,10 +183,16 @@ export default function DateSelector({ league }: DateSelectorProps) {
       <div ref={scrollContainerRef} className="flex space-x-1 overflow-x-auto scrollbar-hide mx-2 scroll-smooth">
         {availableDates.map((date) => {
           const urlDate = formatDateForUrl(date);
+          // Check if this is the current date OR the closest date if current date is not available
+          const isCurrentDate = date.toDateString() === currentDate.toDateString();
+          const isClosestDate = !isCurrentDate && closestAvailableDate && 
+                               date.toDateString() === closestAvailableDate.toDateString();
+          const shouldHighlight = isCurrentDate || isClosestDate;
+          
           return (
             <a
               key={date.toISOString()}
-              ref={date.toDateString() === currentDate.toDateString() ? currentDateRef : null}
+              ref={shouldHighlight ? currentDateRef : null}
               href={`?${createQueryString(urlDate)}`}
               onClick={(e) => {
                 e.preventDefault();
@@ -173,7 +200,7 @@ export default function DateSelector({ league }: DateSelectorProps) {
               }}
               className={cn(
                 'px-3 py-1 text-sm rounded-full whitespace-nowrap shrink-0 cursor-pointer',
-                date.toDateString() === currentDate.toDateString() ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                shouldHighlight ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
               )}
             >
               {formatDateForDisplay(date)}

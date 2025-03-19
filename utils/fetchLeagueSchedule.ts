@@ -34,7 +34,7 @@ export default async function fetchLeagueSchedule(date?: string) {
   }
 
   const dateParam = `&dates=${apiDate}`;
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/scoreboard?limit=200&groups=50${dateParam}`;
+  const url = `${process.env.FETCH_LEAGUE_SCHEDULE_URL}?limit=200&groups=50${dateParam}`;
 
   async function attemptFetch(isRetry = false) {
     const res = await fetch(url, {
