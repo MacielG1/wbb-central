@@ -114,7 +114,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
     });
   }
 
-  // Function to scroll to the current date
   const scrollToCurrentDate = useCallback(() => {
     if (scrollContainerRef.current && currentDateRef.current) {
       currentDateRef.current.scrollIntoView({

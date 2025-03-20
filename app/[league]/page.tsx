@@ -45,21 +45,6 @@ export default async function LeaguePage(props: { searchParams: SearchParamsType
   const data = (await fetchLeagueSchedule(currentDate)) as APIResponse;
   const teamsIds = await fetchAllTeamIds();
 
-  const nextDate = new Date(currentDate);
-  nextDate.setDate(nextDate.getDate() + 1);
-  const prevDate = new Date(currentDate);
-  prevDate.setDate(prevDate.getDate() - 1);
-
-  // Prefetch data in parallel in the background
-  const prefetchPromise = Promise.all([
-    fetchLeagueSchedule(nextDate.toISOString().split('T')[0]),
-    fetchLeagueSchedule(prevDate.toISOString().split('T')[0]),
-  ]).catch(console.error);
-
-  // Don't await the prefetch - let it run in the background
-  prefetchPromise;
-
-
   return (
     <main>
       <Suspense fallback={null}>
