@@ -16,7 +16,6 @@
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "eslint-plugin-react-compiler": "^19.0.0-beta-3229e95-20250315",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.482.0",
     "next": "^15.3.0-canary.17",
