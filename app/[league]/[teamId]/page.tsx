@@ -40,8 +40,8 @@ export default async function TeamPage(props: { params: paramsType }) {
       <section className="w-full mx-auto  p-2 md:p-3 xl:p-2 2xl:p-6 border-r border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <Image
-            src={teamData?.team?.logos?.[0]?.href}
-            alt={''}
+            src={teamData?.team?.logo || teamData?.team?.logos?.[0]?.href}
+            alt={`${teamData.team.displayName} logo`}
             unoptimized
             priority
             width={600}
