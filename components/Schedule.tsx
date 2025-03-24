@@ -8,6 +8,8 @@ import LoadingSpinner from './LoadingSpinner';
 import { Switch } from '@/components/ui/switch';
 import getFavorites from '@/lib/getFavorites';
 import { useRouter } from 'next/navigation';
+import { RotateCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface FilterToggleProps {
   onToggle: () => void;
@@ -28,21 +30,52 @@ function FilterToggle({
     <div className="flex items-center justify-between gap-2 py-1 px-4 my-1.5 relative">
       <div className="flex-1" />
       <div className="flex items-center gap-4">
-        {hasMarchMadnessGames ? (
+        {hasMarchMadnessGames && (
           <div className="flex items-center space-x-2">
-            <Switch id="marchmadness" checked={showOnlyMarchMadness} onCheckedChange={onMarchMadnessToggle} className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]" />
-            <label htmlFor="marchmadness" className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
-              March Madness Only
-            </label>
+            <div 
+              className="flex items-center space-x-2 group relative"
+              data-tooltip="Show only NCAA March Madness tournament games"
+            >
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility] duration-200 delay-700 pointer-events-none whitespace-nowrap z-[9999]">
+                Show only NCAA March Madness tournament games
+              </div>
+              <Switch 
+                id="marchmadness" 
+                checked={showOnlyMarchMadness} 
+                onCheckedChange={onMarchMadnessToggle} 
+                className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]"
+              />
+              <label 
+                htmlFor="marchmadness" 
+                className="text-xs font-medium text-neutral-600 dark:text-neutral-400"
+              >
+                March Madness
+              </label>
+            </div>
           </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            <Switch id="top25" checked={showOnlyTop25} onCheckedChange={onToggle} className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]" />
-            <label htmlFor="top25" className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+        )}
+        <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 group relative"
+            data-tooltip="Show only Top 25 ranked teams and your favorite teams"
+          >
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility] duration-200 delay-700 pointer-events-none whitespace-nowrap z-[9999]">
+              Show only Top 25 ranked teams and your favorite teams
+            </div>
+            <Switch 
+              id="top25" 
+              checked={showOnlyTop25} 
+              onCheckedChange={onToggle} 
+              className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]" 
+            />
+            <label 
+              htmlFor="top25" 
+              className="text-xs font-medium text-neutral-600 dark:text-neutral-400"
+            >
               Top 25
             </label>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -77,18 +110,14 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
         const storedTop25 = await get('showOnlyTop25');
         const storedMarchMadness = await get('showOnlyMarchMadness');
         
-        // Only apply March Madness filter if there are March Madness games
-        if (storedMarchMadness === true && hasMarchMadnessGames) {
-          setShowOnlyMarchMadness(true);
-        } else if (storedTop25 === true) {
-          setShowOnlyTop25(true);
-        }
+        setShowOnlyTop25(storedTop25 === true);
+        setShowOnlyMarchMadness(storedMarchMadness === true);
         
         setIsLoading(false);
       }
     };
     loadStoredValues();
-  }, [hasMarchMadnessGames]);
+  }, []);
 
   // Update events when initialEvents changes
   useEffect(() => {
@@ -124,12 +153,10 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
       });
       const isMarchMadnessGame = game.competitions[0].notes?.some((note: any) => 
         note.type === "event" && (note.headline?.includes("NCAA") && note.headline?.includes("Championship")) || 
-       (note.headline?.includes("NCAA") && note.headline?.includes("Championship")) 
-       || note.headline?.includes("March Madness")
+        note.headline?.includes("March Madness")
       );
 
-      if (showOnlyMarchMadness) {
-        console.log(isMarchMadnessGame);
+      if (showOnlyMarchMadness && hasMarchMadnessGames) {
         return isMarchMadnessGame;
       }
       if (showOnlyTop25) {
@@ -152,7 +179,7 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
       note.type === "event" && note.headline?.includes("NCAA") && note.headline?.includes("Championship")
     );
 
-    if (showOnlyMarchMadness) return isMarchMadnessGame;
+    if (showOnlyMarchMadness && hasMarchMadnessGames) return isMarchMadnessGame;
     if (showOnlyTop25) return hasTop25Team || hasFavoriteTeam;
     return true;
   }).sort((a, b) => {
@@ -198,9 +225,9 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
         hasMarchMadnessGames={hasMarchMadnessGames}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 md:mt-5 2xl:mt-0">
-        {(showOnlyTop25 || showOnlyMarchMadness) && hasNoGamesToShow ? (
+        {(showOnlyTop25 || (showOnlyMarchMadness && hasMarchMadnessGames)) && hasNoGamesToShow ? (
           <div className="col-span-full p-4 text-center text-neutral-600 dark:text-neutral-400">
-            {showOnlyMarchMadness ? "No March Madness games scheduled" : "No Top 25 or favorite team games scheduled"}
+            {showOnlyMarchMadness && hasMarchMadnessGames ? "No March Madness games scheduled" : "No Top 25 or favorite team games scheduled"}
           </div>
         ) : events.length === 0 ? (
           <div className="col-span-full p-4 text-center text-neutral-600 dark:text-neutral-400">No games scheduled for today</div>
