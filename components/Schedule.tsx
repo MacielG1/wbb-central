@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import ScheduleRow from './ScheduleRow';
 import { Competitor } from '@/types/espn';
 import { get, set } from 'idb-keyval';
@@ -8,8 +8,6 @@ import LoadingSpinner from './LoadingSpinner';
 import { Switch } from '@/components/ui/switch';
 import getFavorites from '@/lib/getFavorites';
 import { useRouter } from 'next/navigation';
-import { RotateCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface FilterToggleProps {
   onToggle: () => void;
@@ -30,7 +28,7 @@ function FilterToggle({
     <div className="flex items-center justify-between gap-2 py-1 px-4 my-1.5 relative">
       <div className="flex-1" />
       <div className="flex items-center gap-4">
-        {hasMarchMadnessGames && (
+        {hasMarchMadnessGames ? (
           <div className="flex items-center space-x-2">
             <div 
               className="flex items-center space-x-2 group relative"
@@ -53,29 +51,30 @@ function FilterToggle({
               </label>
             </div>
           </div>
-        )}
-        <div className="flex items-center space-x-2">
-          <div 
-            className="flex items-center space-x-2 group relative"
-            data-tooltip="Show only Top 25 ranked teams and your favorite teams"
-          >
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility] duration-200 delay-700 pointer-events-none whitespace-nowrap z-[9999]">
-              Show only Top 25 ranked teams and your favorite teams
-            </div>
-            <Switch 
-              id="top25" 
-              checked={showOnlyTop25} 
-              onCheckedChange={onToggle} 
-              className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]" 
-            />
-            <label 
-              htmlFor="top25" 
-              className="text-xs font-medium text-neutral-600 dark:text-neutral-400"
+        ) : (
+          <div className="flex items-center space-x-2">
+            <div 
+              className="flex items-center space-x-2 group relative"
+              data-tooltip="Show only Top 25 ranked teams and your favorite teams"
             >
-              Top 25
-            </label>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 px-2 py-1 bg-neutral-800 text-neutral-200 text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility] duration-200 delay-700 pointer-events-none whitespace-nowrap z-[9999]">
+                Show only Top 25 ranked teams and your favorite teams
+              </div>
+              <Switch 
+                id="top25" 
+                checked={showOnlyTop25} 
+                onCheckedChange={onToggle} 
+                className="cursor-pointer data-[state=checked]:bg-indigo-600 [&>span]:data-[state=checked]:bg-neutral-300 z-[999]" 
+              />
+              <label 
+                htmlFor="top25" 
+                className="text-xs font-medium text-neutral-600 dark:text-neutral-400"
+              >
+                Top 25
+              </label>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -93,7 +92,6 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState(initialEvents);
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
   // Check if any March Madness games are available
   const hasMarchMadnessGames = events.some(game => 
@@ -124,11 +122,6 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
     setEvents(initialEvents);
   }, [initialEvents]);
 
-  function handleRefresh() {
-    startTransition(() => {
-      router.refresh();
-    });
-  }
 
   function handleToggle() {
     const newValue = !showOnlyTop25;
