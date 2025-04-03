@@ -11,6 +11,7 @@ import { Metadata } from 'next';
 import TeamSelector from '@/components/TeamSelector';
 import { fetchAllTeamIds } from '@/utils/fetchAllTeamIds';
 import { Table } from '@/components/icons/Table';
+import { redirect } from 'next/navigation';
 import Schedule from '@/components/Schedule';
 
 export type SearchParamsType = Promise<{ date?: string }>;
@@ -38,11 +39,59 @@ export default async function LeaguePage(props: { searchParams: SearchParamsType
     day: '2-digit',
   });
   const parts = formatter.formatToParts(new Date());
-  const currentDate = (await props.searchParams).date || 
-    `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
-  
+  const dateFromUrl = (await props.searchParams).date;
   const { league } = await props.params;
-  const data = (await fetchLeagueSchedule(currentDate)) as APIResponse;
+  
+  // Format today's date as YYYY-MM-DD
+  const todayStr = `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
+  
+  // If no date specified in URL, find the closest date with games
+  if (!dateFromUrl) {
+
+    const initialData = (await fetchLeagueSchedule(todayStr)) as APIResponse;
+    
+    if (initialData.leagues[0]?.calendar && initialData.leagues[0].calendar.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Find closest date in available dates
+      const availableDates = initialData.leagues[0].calendar.map(dateString => {
+        const date = new Date(dateString);
+        date.setHours(0, 0, 0, 0);
+        return {
+          date,
+          dateString
+        };
+      });
+      
+      // First check for exact match with today
+      const todayMatch = availableDates.find(d => 
+        d.date.toDateString() === today.toDateString());
+      
+      if (todayMatch) {
+
+        const formattedDate = todayMatch.dateString.split('T')[0];
+        // Only redirect if it's not already today's date
+        if (formattedDate !== todayStr) {
+          redirect(`/${league}?date=${formattedDate}`);
+        }
+      } else {
+        // Find closest date if no match for today
+        const closestDate = availableDates.reduce((closest, current) => {
+          const currentDiff = Math.abs(current.date.getTime() - today.getTime());
+          const closestDiff = Math.abs(closest.date.getTime() - today.getTime());
+          return currentDiff < closestDiff ? current : closest;
+        }, availableDates[0]);
+        
+        // Redirect to the closest date
+        const closestDateFormatted = closestDate.dateString.split('T')[0];
+        redirect(`/${league}?date=${closestDateFormatted}`);
+      }
+    }
+  }
+  
+  const dateToFetch = dateFromUrl || todayStr;
+  const data = (await fetchLeagueSchedule(dateToFetch)) as APIResponse;
   const teamsIds = await fetchAllTeamIds();
 
   return (

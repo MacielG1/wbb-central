@@ -568,7 +568,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
   }, []);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-neutral-950 mr-1">
+    <div className="h-full flex flex-col overflow-hidden bg-neutral-950">
       <div className="p-2 border-b border-neutral-800 flex-shrink-0">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
