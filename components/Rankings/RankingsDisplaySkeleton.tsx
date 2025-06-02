@@ -15,7 +15,6 @@ export default function RankingsDisplaySkeleton() {
           </div>
         </div>
 
-        {/* Skeleton items */}
         {Array.from({ length: 25 }).map((_, index) => (
           <div key={index} className="col-span-4 px-2.5 grid grid-cols-[auto_1fr_auto_auto] gap-2 items-center w-full py-1 [&+&]:border-t [&+&]:border-neutral-700">
             <div className="h-3 w-4 bg-neutral-800 rounded animate-pulse" />

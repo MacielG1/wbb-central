@@ -214,17 +214,14 @@ export default function GameStats({ data, league }: GameStatsProps) {
 
   const isPreGame = !homeTeam || !awayTeam || Object.keys(data.boxscore).length === 0;
 
-  // Get teams from header for pregame state
   const headerHomeTeam = data.header.competitions[0].competitors.find((team) => team.homeAway === 'home');
   const headerAwayTeam = data.header.competitions[0].competitors.find((team) => team.homeAway === 'away');
 
-  // Function to reorder stats based on our desired order
   const reorderStats = (stats: string[], headers: string[]) => {
     const desiredOrder = ['PTS', 'AST', 'REB', 'OREB', 'DREB', 'STL', 'BLK', 'TO', 'PF', 'FG', '3PT', 'FT', 'MIN'];
     const reorderedStats: string[] = [];
     const reorderedHeaders: string[] = [];
 
-    // Get the arrays from the API data
     const names = awayPlayers?.statistics[0].names || [];
 
     desiredOrder.forEach((header) => {
@@ -241,11 +238,9 @@ export default function GameStats({ data, league }: GameStatsProps) {
   const getTeamScore = (team: typeof homeTeam) => {
     if (!team) return '0';
 
-    // First try to find points directly
     const points = team.statistics.find((stat) => stat.name === 'points');
     if (points?.displayValue) return points.displayValue;
 
-    // If not found, look for total points in the last stat of totals
     const teamPlayers = data.boxscore.players?.find((p) => p.team.id === team.team.id);
     if (teamPlayers) {
       const totals = teamPlayers.statistics[0].totals;
@@ -260,10 +255,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
   const isHomeWinner = Number(homeScore) > Number(awayScore);
   const isAwayWinner = Number(awayScore) > Number(homeScore);
 
-  // Add a default placeholder image at the top of the component
-  const defaultTeamLogo = "/images/default-team-logo.png"; // You can create and use a default logo image
-
-  // Render game header
   const renderGameHeader = () => (
     <div className="flex flex-col items-center justify-center gap-1 mb-0">
       <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-[1600px] px-4 gap-3 md:gap-0">
@@ -548,7 +539,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
               <thead>
                 <tr className="bg-neutral-100 dark:bg-neutral-800 text-xs">
                   <th className="py-1 px-2 text-left font-medium text-neutral-600 dark:text-neutral-400 w-[100px]">Team</th>
-                  {/* Regular quarters (always show up to 4) */}
                   {Array.from({ length: Math.min(4, headerHomeTeam.linescores?.length || 4) }).map((_, i) => (
                     <th key={i} className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-6">
                       {i + 1}
@@ -665,7 +655,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
     const isInactive = player.stats.every((stat: string) => stat === '--');
     const isDNP = player.didNotPlay;
 
-    // Get initials for placeholder
     const getInitials = (name: string) => {
       return name
         .split(' ')
@@ -694,7 +683,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
           );
         }
       }
-      // Skip percentage columns as they're now shown with their corresponding stats
       if (header.includes('%')) {
         return null;
       }
@@ -804,46 +792,37 @@ export default function GameStats({ data, league }: GameStatsProps) {
   const renderTeamSection = (players: typeof homePlayers, team: typeof homeTeam, isHome: boolean) => {
     const isGameOver = data.header.competitions[0].status.type.completed;
 
-    // Sort function for players by points, then assists, then rebounds
     const sortPlayersByPoints = (a: PlayerData, b: PlayerData) => {
-      // Get stats indices from the statHeaders array
       const pointsIndex = statHeaders.findIndex((header) => header === 'PTS');
       const assistsIndex = statHeaders.findIndex((header) => header === 'AST');
       const reboundsIndex = statHeaders.findIndex((header) => header === 'REB');
 
-      // Compare points first
       const aPoints = parseInt(a.stats[pointsIndex]) || 0;
       const bPoints = parseInt(b.stats[pointsIndex]) || 0;
       if (aPoints !== bPoints) {
-        return bPoints - aPoints; // Sort points in descending order
+        return bPoints - aPoints; 
       }
 
-      // If points are tied, compare assists
       const aAssists = parseInt(a.stats[assistsIndex]) || 0;
       const bAssists = parseInt(b.stats[assistsIndex]) || 0;
       if (aAssists !== bAssists) {
-        return bAssists - aAssists; // Sort assists in descending order
+        return bAssists - aAssists; 
       }
 
-      // If assists are tied, compare rebounds
       const aRebounds = parseInt(a.stats[reboundsIndex]) || 0;
       const bRebounds = parseInt(b.stats[reboundsIndex]) || 0;
-      return bRebounds - aRebounds; // Sort rebounds in descending order
+      return bRebounds - aRebounds;
     };
 
-    // Sort and filter players
     const activeStarters = players.statistics[0].athletes.filter((p) => p.starter && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
     const activeBench = players.statistics[0].athletes.filter((p) => !p.starter && !p.didNotPlay && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
 
-    // Handle inactive and DNP players based on game status
     const inactivePlayers = isGameOver
       ? players.statistics[0].athletes.filter((p) => p.stats.every((s) => s === '--') && !p.didNotPlay)
       : players.statistics[0].athletes.filter((p) => p.stats.every((s) => s === '--'));
 
-    // Only show DNP players after game is over
     const dnpPlayers = isGameOver ? players.statistics[0].athletes.filter((p) => p.didNotPlay) : [];
 
-    // Calculate needed spacers
     const starterSpacers = maxStarters - activeStarters.length;
     const benchSpacers = maxBench - activeBench.length;
 
@@ -924,7 +903,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
 
               {/* Active Bench */}
               {activeBench.map((player) => renderPlayer(player, isHome))}
-              {/* Add spacers for bench if needed */}
               {Array.from({ length: benchSpacers }).map((_, i) => (
                 <tr key={`bench-spacer-${i}`} className="h-[37px]">
                   <td className="sticky left-0 bg-white dark:bg-neutral-900 py-0.5 pl-3 pr-1.5">
@@ -947,7 +925,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
                 <td className="py-2 px-2 text-left text-sm text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-100 dark:bg-neutral-800 font-bold">TOTALS</td>
                 {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
                   const statName = statAbbreviationMap[header];
-                  // For points, use the totals array from players statistics
                   if (header === 'PTS') {
                     const totals = players.statistics[0].totals;
                     return (
@@ -971,7 +948,6 @@ export default function GameStats({ data, league }: GameStatsProps) {
                 })}
               </tr>
 
-              {/* Gap after totals */}
               <tr>
                 <td colSpan={statHeaders.length + 1} className="h-0 border-t-2 border-neutral-300 dark:border-neutral-700"></td>
               </tr>

@@ -39,18 +39,15 @@ export default function ConferenceStandings({ conference, standings, league, cur
     const bWinPct = bWins / (bWins + bLosses) || 0;
 
     if (Math.abs(bWinPct - aWinPct) < 0.001) {
-      // If win percentages are equal, team with more wins should be ranked higher
       return bWins - aWins;
     }
     return bWinPct - aWinPct;
   });
 
-  // Find the leader's record for GB calculation
   const leaderGames = sortedStandings[0]?.stats.find((s) => s.type === 'vsconf')?.summary?.split('-') || ['0', '0'];
   const leaderWins = parseInt(leaderGames[0]);
   const leaderLosses = parseInt(leaderGames[1]);
 
-  // Update the GB values
   sortedStandings.forEach((team) => {
     const games = team.stats.find((s) => s.type === 'vsconf')?.summary?.split('-') || ['0', '0'];
     const wins = parseInt(games[0]);

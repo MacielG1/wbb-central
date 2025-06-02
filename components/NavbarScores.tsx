@@ -105,7 +105,6 @@ export default function NavbarScores({ data }: Props) {
         behavior: 'smooth',
       });
 
-      // Check scroll state after animation completes
       setTimeout(checkScroll, 500);
     }
   }

@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import NCAA from './icons/NCAA';
-// import { usePathname } from 'next/navigation';
+import WNBA from './icons/WNBA';
+import { usePathname } from 'next/navigation';
 
 export default function NavbarSports() {
-  // const pathname = usePathname();
+  const pathname = usePathname();
 
   const sports = [
     {
@@ -13,6 +15,11 @@ export default function NavbarSports() {
       path: '/ncaaw',
       logo: <NCAA className="size-5" />
     },
+    {
+      name: 'WNBA',
+      path: '/wnba',
+      logo: <WNBA className="size-5" />
+    }
   ];
 
   return (
@@ -21,7 +28,7 @@ export default function NavbarSports() {
         <ul className="flex">
           {sports.map((sport) => (
             <li key={sport.name}>
-              <Link href={sport.path} className={'px-6 py-1.5 text-sm font-medium transition-colors flex items-center gap-2 hover:bg-neutral-900 text-white'}>
+              <Link href={sport.path} className={`px-6 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5 hover:bg-neutral-900 text-white ${pathname === sport.path ? 'bg-neutral-900' : ''}`}>
                   {sport.logo}
                 <span className="pt-0.5">{sport.name}</span>
               </Link>

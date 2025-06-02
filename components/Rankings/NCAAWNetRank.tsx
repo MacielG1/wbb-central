@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import allTeamsData from '@/utils/allTeamsData.json';
+import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import getFavorites from '@/lib/getFavorites';
 import { useEffect, useState } from 'react';
@@ -36,26 +36,21 @@ const specialCases: { [key: string]: string } = {
 function findTeamData(rankingName: string) {
   const rankingNameLower = rankingName.toLowerCase();
 
-  // Check special cases first
   if (specialCases[rankingNameLower]) {
     return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCases[rankingNameLower] || t.nickname.toLowerCase() === specialCases[rankingNameLower]);
   }
 
-  // First try exact matches with nickname
   const nicknameMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === rankingNameLower);
   if (nicknameMatch) return nicknameMatch;
 
-  // Then try exact matches with displayName
   const displayMatch = allTeamsData.find((t) => t.displayName.toLowerCase() === rankingNameLower);
   if (displayMatch) return displayMatch;
 
-  // Try matching by parts
   const nameParts = rankingNameLower.split(' ').filter(Boolean);
   return allTeamsData.find((t) => {
     const displayNameParts = t.displayName.toLowerCase().split(' ');
     const nicknameParts = t.nickname.toLowerCase().split(' ');
 
-    // Check both displayName and nickname parts
     return nameParts.every(
       (part) => displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) || nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
     );

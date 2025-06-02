@@ -2,46 +2,30 @@
 
 import { Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import getFavorites, { saveFavorite } from '@/lib/getFavorites';
 
 interface FavoriteTeamButtonProps {
   teamId: string;
   teamName: string;
+  league: string;
 }
 
-function getFavorites() {
-  try {
-    return JSON.parse(localStorage.getItem('favoriteTeams') || '{}');
-  } catch (error) {
-    console.error('Error reading favorites:', error);
-    return {};
-  }
-}
-
-export default function FavoriteTeamButton({ teamId, teamName }: FavoriteTeamButtonProps) {
+export default function FavoriteTeamButton({ teamId, teamName, league }: FavoriteTeamButtonProps) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    const favorites = getFavorites();
+    if (typeof window === 'undefined') return;
+    
+    const favorites = getFavorites(league);
     setIsFavorite(!!favorites[teamId]);
-  }, [teamId]);
+  }, [teamId, league]);
 
   function toggleFavorite() {
-    try {
-      const favorites = getFavorites();
-
-      if (isFavorite) {
-        delete favorites[teamId];
-      } else {
-        favorites[teamId] = {
-          name: teamName,
-          addedAt: new Date().toISOString(),
-        };
-      }
-
-      localStorage.setItem('favoriteTeams', JSON.stringify(favorites));
-      setIsFavorite(!isFavorite);
-    } catch (error) {
-      console.error('Error updating favorites:', error);
+    const newFavoriteStatus = !isFavorite;
+    const success = saveFavorite(teamId, teamName, league, newFavoriteStatus);
+    
+    if (success) {
+      setIsFavorite(newFavoriteStatus);
     }
   }
 

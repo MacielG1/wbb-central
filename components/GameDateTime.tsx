@@ -19,7 +19,6 @@ export default function GameDateTime({ gameDate, status }: GameDateTimeProps) {
 
   useLayoutEffect(() => {
     const getLocalGameTime = () => {
-      // If game is live, show the live status instead
       if (status && !status.type.completed && status.type.description === 'In Progress') {
         return status.type.detail;
       }

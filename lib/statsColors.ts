@@ -39,13 +39,14 @@ const statTypeThresholds: { [key: string]: ZScoreThresholds } = {
     poor: -1.5,
   },
   turnover: {
-    excellent: 1.95,
-    good: 1.65,
-    above: 1.25,
-    below: -1.0,
-    poor: -1.5,
+    excellent: 1.5,
+    good: 1.25,
+    above: 0.85,
+    below: -0.8,
+    poor: -1.2,
   },
 };
+
 
 function getZScoreStyle(zScore: number, statType: 'default' | 'efficiency' | 'usage' | 'turnover' | 'stealPercentage' = 'default'): CellStyle {
   const thresholds = statTypeThresholds[statType];
@@ -141,46 +142,42 @@ function getShootingPercentageStyle(value: number, attempts: number, type: 'thre
     ft: 15,
   };
 
-  // Excellent thresholds for each shot type
   const excellentThresholds = {
-    three: 40,
-    two: 55,
-    rim: 65,
-    midRange: 45,
-    ft: 85,
+    three: 38,
+    two: 52,   
+    rim: 65,  
+    midRange: 45, 
+    ft: 85,   
   };
 
-  // Good thresholds for each shot type
   const goodThresholds = {
-    three: 35,
-    two: 50,
-    rim: 60,
-    midRange: 40,
-    ft: 75,
+    three: 34, 
+    two: 48,  
+    rim: 60,  
+    midRange: 40, 
+    ft: 80, 
   };
 
   // Average thresholds for each shot type
   const avgThresholds = {
-    three: 30,
-    two: 45,
-    rim: 55,
-    midRange: 35,
-    ft: 70,
+    three: 30, 
+    two: 44,  
+    rim: 55, 
+    midRange: 35, 
+    ft: 75,   
   };
 
   // Poor thresholds for each shot type
   const poorThresholds = {
-    three: 25,
-    two: 40,
-    rim: 50,
+    three: 26,
+    two: 38,  
+    rim: 50, 
     midRange: 30,
-    ft: 65,
+    ft: 65, 
   };
 
-  // If below minimum attempts, reduce color intensity based on attempts
   const attemptsRatio = Math.min(attempts / minAttempts[type], 1);
 
-  // Get base color based on thresholds
   let baseStyle: CellStyle;
   if (value >= excellentThresholds[type]) {
     baseStyle = {
@@ -212,7 +209,6 @@ function getShootingPercentageStyle(value: number, attempts: number, type: 'thre
   return baseStyle;
 }
 
-// Special handling for non-shooting percentages
 function getPercentageStyle(value: number, statKey?: string): CellStyle {
   if (isNaN(value) || value === null) {
     return {
@@ -221,7 +217,6 @@ function getPercentageStyle(value: number, statKey?: string): CellStyle {
     };
   }
 
-  // Different thresholds for different types of percentage stats
   const thresholds = {
     offensiveReboundPercentage: {
       excellent: 10,
@@ -301,47 +296,7 @@ function getPercentageStyle(value: number, statKey?: string): CellStyle {
   }
 }
 
-// Special z-score styling for usage percentage
-function getUsageStyleForZScore(zScore: number): CellStyle {
-  if (zScore >= 2) {
-    // More lenient threshold for dark green
-    return {
-      backgroundColor: 'rgb(0, 88, 0)',
-      color: 'white',
-    };
-  } else if (zScore >= 1.5) {
-    // More lenient threshold for medium green
-    return {
-      backgroundColor: 'rgb(66, 194, 66)',
-      color: 'black',
-    };
-  } else if (zScore >= 0.75) {
-    // More lenient threshold for light green
-    return {
-      backgroundColor: 'rgb(171, 255, 171)',
-      color: 'black',
-    };
-  } else if (zScore <= -1.5) {
-    // More lenient threshold for dark red
-    return {
-      backgroundColor: 'rgb(255, 71, 71)',
-      color: 'black',
-    };
-  } else if (zScore <= -0.75) {
-    // More lenient threshold for light red
-    return {
-      backgroundColor: 'rgb(255, 150, 150)',
-      color: 'black',
-    };
-  } else {
-    return {
-      backgroundColor: '#171717',
-      color: 'white',
-    };
-  }
-}
 
-// Get style for a specific stat value
 export function getStatStyle(value: number, thresholds: StatThresholds | undefined, statKey?: string, attempts?: number): CellStyle {
   if (isNaN(value) || value === null) {
     return {
@@ -350,40 +305,222 @@ export function getStatStyle(value: number, thresholds: StatThresholds | undefin
     };
   }
 
-  // Handle percentage-based stats that use fixed thresholds
+  if (statKey && (statKey === 'fgPercentage' || statKey === 'fg3Percentage' || statKey === 'ftPercentage') && thresholds) {
+      if (value === 100) {
+          return {
+              backgroundColor: 'rgb(0, 88, 0)',
+              color: 'white',
+          };
+      }
+
+      const zScore = (value - thresholds.mean) / thresholds.stdDev;
+
+      if (statKey === 'ftPercentage') {
+          if (zScore >= 1.2) {
+              return {
+                  backgroundColor: 'rgb(0, 88, 0)',
+                  color: 'white',
+              };
+          } else if (zScore >= 0.8 && zScore < 1.2) {
+              return {
+                  backgroundColor: 'rgb(66, 194, 66)',
+                  color: 'black',
+              };
+          } else if (zScore >= 0.4 && zScore < 0.8) {
+              return {
+                  backgroundColor: 'rgb(171, 255, 171)',
+                  color: 'black',
+              };
+          } else if (zScore > -0.4 && zScore < 0.4) {
+              return {
+                  backgroundColor: '#171717', 
+                  color: 'white',
+              };
+          } else if (zScore > -0.8 && zScore <= -0.4) { 
+              return {
+                  backgroundColor: 'rgb(255, 150, 150)',
+                  color: 'black',
+              };
+          } else if (zScore <= -0.8) {
+              return {
+                  backgroundColor: 'rgb(255, 71, 71)',
+                  color: 'black',
+              };
+          }
+      } else {
+          if (zScore >= 1.5) {
+              return {
+                  backgroundColor: 'rgb(0, 88, 0)', 
+                  color: 'white',
+              };
+          } else if (zScore >= 1.0 && zScore < 1.5) {
+              return {
+                  backgroundColor: 'rgb(66, 194, 66)', 
+                  color: 'black',
+              };
+          } else if (zScore >= 0.5 && zScore < 1.0) {
+              return {
+                  backgroundColor: 'rgb(171, 255, 171)', 
+                  color: 'black',
+              };
+          } else if (zScore > -0.5 && zScore < 0.5) {
+              return {
+                  backgroundColor: '#171717',
+                  color: 'white',
+              };
+          } else if (zScore > -1.0 && zScore <= -0.5) {
+              return {
+                  backgroundColor: 'rgb(255, 150, 150)',
+                  color: 'black',
+              };
+          } else if (zScore <= -1.0) {
+              return {
+                  backgroundColor: 'rgb(255, 71, 71)',
+                  color: 'black',
+              };
+          }
+      }
+       return {
+          backgroundColor: '#171717',
+          color: 'white',
+        };
+  }
+
+  if (thresholds && statKey !== 'usage') {
+      const zScore = (value - thresholds.mean) / thresholds.stdDev;
+
+      if (statKey === 'turnovers') {
+          const invertedZScore = -zScore;
+          if (invertedZScore >= 1.2) {
+              return {
+                  backgroundColor: 'rgb(0, 88, 0)', 
+                  color: 'white',
+              };
+          } else if (invertedZScore >= 0.8 && invertedZScore < 1.2) {
+              return {
+                  backgroundColor: 'rgb(66, 194, 66)',
+                  color: 'black',
+              };
+          } else if (invertedZScore >= 0.4 && invertedZScore < 0.8) {
+              return {
+                  backgroundColor: 'rgb(171, 255, 171)',
+                  color: 'black',
+              };
+          } else if (invertedZScore > -0.4 && invertedZScore < 0.4) {
+              return {
+                  backgroundColor: '#171717',
+                  color: 'white',
+              };
+          } else if (invertedZScore > -0.8 && invertedZScore <= -0.4) {
+              return {
+                  backgroundColor: 'rgb(255, 150, 150)',
+                  color: 'black',
+              };
+          } else if (invertedZScore <= -0.8) {
+              return {
+                  backgroundColor: 'rgb(255, 71, 71)',
+                  color: 'black',
+              };
+          }
+      }
+
+      if (statKey === 'effectiveFGPercentage' || statKey === 'trueShootingPercentage') {
+          if (zScore >= 2.2) {
+              return {
+                  backgroundColor: 'rgb(0, 88, 0)',
+                  color: 'white',
+              };
+          } else if (zScore >= 1.8 && zScore < 2.2) {
+              return {
+                  backgroundColor: 'rgb(66, 194, 66)',
+                  color: 'black',
+              };
+          } else if (zScore >= 1.2 && zScore < 1.8) {
+              return {
+                  backgroundColor: 'rgb(171, 255, 171)',
+                  color: 'black',
+              };
+          } else if (zScore > -1.2 && zScore < 1.2) {
+              return {
+                  backgroundColor: '#171717',
+                  color: 'white',
+              };
+          } else if (zScore > -1.8 && zScore <= -1.2) {
+              return {
+                  backgroundColor: 'rgb(255, 150, 150)',
+                  color: 'black',
+              };
+          } else if (zScore <= -1.8) {
+              return {
+                  backgroundColor: 'rgb(255, 71, 71)',
+                  color: 'black',
+              };
+          }
+      }
+
+      // Original thresholds for other stats
+      if (zScore >= 2.0) {
+          return {
+              backgroundColor: 'rgb(0, 88, 0)', // Darker green (Excellent)
+              color: 'white',
+          };
+      } else if (zScore >= 1.5 && zScore < 2.0) { // Medium Green (Good)
+          return {
+              backgroundColor: 'rgb(66, 194, 66)', // Medium green
+              color: 'black',
+          };
+      } else if (zScore >= 1.0 && zScore < 1.5) { // Light Green (Above Average)
+          return {
+              backgroundColor: 'rgb(171, 255, 171)', // Light green
+              color: 'black',
+          };
+      } else if (zScore > -1.0 && zScore < 1.0) { // Neutral (No Color)
+          return {
+              backgroundColor: '#171717',
+              color: 'white',
+          };
+      } else if (zScore > -1.5 && zScore <= -1.0) { // Light Red (Below Average)
+          return {
+              backgroundColor: 'rgb(255, 150, 150)', // Light red
+              color: 'black',
+          };
+      } else if (zScore <= -1.5) { // Dark Red (Poor)
+          return {
+              backgroundColor: 'rgb(255, 71, 71)', // Dark red
+              color: 'black',
+          };
+      }
+       // Fallback to neutral if somehow none of the above matched (shouldn't happen with full coverage)
+        return {
+            backgroundColor: '#171717',
+            color: 'white',
+        };
+  }
+
   if (statKey) {
-    // Check for percentage-based stats
     if (statKey === 'offensiveReboundPercentage' || statKey === 'defensiveReboundPercentage' || statKey === 'assistPercentage' || statKey === 'stealPercentage') {
       return getPercentageStyle(value, statKey);
     }
 
-    // Check for shooting percentage stats
     if (statKey === 'freeThrowPercentage' || statKey === 'twoPPercentage' || statKey === 'threePPercentage' || statKey === 'rimPercentage' || statKey === 'midRangePercentage') {
-      return getShootingPercentageStyle(
-        value,
-        attempts || 0,
-        statKey.toLowerCase().includes('three')
-          ? 'three'
-          : statKey.toLowerCase().includes('two')
-          ? 'two'
-          : statKey.toLowerCase().includes('rim')
-          ? 'rim'
-          : statKey.toLowerCase().includes('midrange')
-          ? 'midRange'
-          : 'ft'
-      );
+      if (!thresholds) {
+          return getShootingPercentageStyle(
+            value,
+            attempts || 0,
+            statKey.toLowerCase().includes('three')
+              ? 'three'
+              : statKey.toLowerCase().includes('two')
+              ? 'two'
+              : statKey.toLowerCase().includes('rim')
+              ? 'rim'
+              : statKey.toLowerCase().includes('midrange')
+              ? 'midRange'
+              : 'ft'
+          );
+      }
     }
   }
 
-  // For stats that use z-scores, ensure we have thresholds
-  if (!thresholds) {
-    return {
-      backgroundColor: '#171717',
-      color: 'white',
-    };
-  }
-
-  // Don't color grade low values for certain volume stats
   const isVolumeBasedStat = false;
 
   if ((isVolumeBasedStat || !statKey) && value <= 1) {
@@ -393,7 +530,6 @@ export function getStatStyle(value: number, thresholds: StatThresholds | undefin
     };
   }
 
-  // Special handling for 2P and 3P made-attempts
   if ((statKey === 'twoPMade' || statKey === 'threePMade') && attempts && attempts > 0) {
     const percentage = value / attempts;
     if (percentage <= 0.25) {
@@ -409,7 +545,6 @@ export function getStatStyle(value: number, thresholds: StatThresholds | undefin
     }
   }
 
-  // Don't color grade 0% only for direct shooting-related stats (not composite stats like TS% or eFG%)
   const isShootingRelated =
     statKey?.toLowerCase().includes('threep') ||
     statKey?.toLowerCase().includes('twop') ||
@@ -424,24 +559,20 @@ export function getStatStyle(value: number, thresholds: StatThresholds | undefin
     };
   }
 
-  // For stats using z-scores
-  const zScore = (value - thresholds.mean) / thresholds.stdDev;
-
-  // Special case for usage
-  if (statKey === 'usage') {
-    return getZScoreStyle(zScore, 'usage');
-  }
-
-  // Special case for eFG% and TS%
-  if (statKey === 'effectiveFGPercentage' || statKey === 'trueShootingPercentage') {
-    return getZScoreStyle(zScore, 'efficiency');
-  }
-
-  return getZScoreStyle(zScore);
+  return {
+    backgroundColor: '#171717',
+    color: 'white',
+  };
 }
 
-// Calculate thresholds for all relevant stats
 export function calculateAllThresholds(data: any[]) {
+  const isWNBA = data.length > 0 && 'fgMade' in data[0];
+  
+  if (isWNBA) {
+    return calculateWNBAThresholds(data);
+  }
+
+  // NCAAW stats
   const statsToAnalyze = [
     'offensiveRating',
     'turnoverPercentage',
@@ -480,14 +611,50 @@ export function calculateAllThresholds(data: any[]) {
     'points',
     'minutesPerGame',
     'gamesPlayed',
+
+    'freeThrowPercentage',
+    'twoPPercentage',
+    'threePPercentage',
+    'rimPercentage',
+    'midRangePercentage'
   ];
 
   const thresholds: { [key: string]: StatThresholds } = {};
-
-  statsToAnalyze.forEach((stat) => {
+  statsToAnalyze.forEach(stat => {
     thresholds[stat] = calculateThresholds(data, stat);
   });
+  return thresholds;
+}
 
+// Calculate thresholds specifically for WNBA stats
+function calculateWNBAThresholds(data: any[]) {
+  const statsToAnalyze = [
+    'fgMade',
+    'fgAttempted',
+    'fgPercentage',
+    'fg3Made',
+    'fg3Attempted',
+    'fg3Percentage',
+    'ftMade',
+    'ftAttempted',
+    'ftPercentage',
+    'turnovers',
+    'efficiency',
+    'rebounds',
+    'offensiveRebounds',
+    'defensiveRebounds',
+    'points',
+    'assists',
+    'steals',
+    'blocks',
+    'minutes',
+    'gamesPlayed'
+  ];
+
+  const thresholds: { [key: string]: StatThresholds } = {};
+  statsToAnalyze.forEach(stat => {
+    thresholds[stat] = calculateThresholds(data, stat);
+  });
   return thresholds;
 }
 

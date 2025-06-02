@@ -8,6 +8,13 @@ import { cn } from '@/lib/utils';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import getFavorites from '@/lib/getFavorites';
 
+const formatTeamName = (name: string) => {
+  return name
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function TeamSelector({
   allTeams,
   teamId,
@@ -28,14 +35,15 @@ export default function TeamSelector({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedTeam = teamId ? allTeams.find((team) => team.id === teamId) : null;
+  const selectedTeamLogoIndex = selectedTeam && DARK_COLORED_LOGOS.includes(selectedTeam.displayName) ? 1 : 0;
 
-  const favorites = getFavorites();
+  const favorites = getFavorites(league);
 
   const sortedTeams = useMemo(() => {
     const favoriteTeams = allTeams.filter((team) => favorites[team.id]);
     const nonFavoriteTeams = allTeams.filter((team) => !favorites[team.id]);
     return [...favoriteTeams, ...nonFavoriteTeams];
-  }, [allTeams, favorites]);
+  }, [allTeams, favorites, league]);
 
   const filteredTeams = useMemo(() => sortedTeams.filter((team) => team.displayName.toLowerCase().includes(searchQuery.toLowerCase())), [sortedTeams, searchQuery]);
 
@@ -72,7 +80,7 @@ export default function TeamSelector({
           maxWidth
         )}
       >
-        <span className="mb-0.5">{selectedTeam ? selectedTeam.displayName : 'Select a team'}</span>
+        <span className="mb-0.5">{selectedTeam ? formatTeamName(selectedTeam.displayName) : 'Select a team'}</span>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-neutral-700 dark:text-neutral-300">
           <ChevronDown className="size-4" />
         </div>
@@ -111,7 +119,7 @@ export default function TeamSelector({
                 )}
               >
                 {team.logos?.[logoIndex]?.href && <Image src={team.logos[logoIndex].href} alt={''} width={24} height={24} className="mr-2 size-6" unoptimized />}
-                <span className="text-sm">{team.displayName}</span>
+                <span className="text-sm">{formatTeamName(team.displayName)}</span>
               </button>
             );
           })}

@@ -6,12 +6,13 @@ import { MoveDown, MoveUp, Loader2, UserRound, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import allTeamsData from '@/utils/allTeamsData.json';
+import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
-import { fetchTeamsStatsBT } from '@/utils/fetchTeamsBT';
+import { fetchTeamsStatsBT } from '@/utils/NCAAW/fetchTeamsBT';
 import getFavorites from '@/lib/getFavorites';
-import { fetchPlayersStatsBT } from '@/utils/fetchPlayersBT';
-import { specialCases } from './PlayersAdvancedStats';
+import { fetchPlayersStatsBT } from '@/utils/NCAAW/fetchPlayersBT';
+import { specialCasesBT } from '../NCAAWSchedule';
+
 
 interface TeamStats {
   team: string;
@@ -60,26 +61,23 @@ interface FilterConfig {
   search: string;
   season: number;
   conference: string;
+  seasonType: string;
 }
 
 
 const findTeamData = (teamName: string) => {
   const teamNameLower = teamName.toLowerCase();
 
-  // Check special cases first
-  if (specialCases[teamNameLower]) {
-    return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCases[teamNameLower] || t.nickname.toLowerCase() === specialCases[teamNameLower]);
+  if (specialCasesBT[teamNameLower]) {
+    return allTeamsData.find((t: any) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower]);
   }
 
-  // Then try exact matches with nickname
-  const nicknameMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === teamNameLower);
+  const nicknameMatch = allTeamsData.find((t: any) => t.nickname.toLowerCase() === teamNameLower);
   if (nicknameMatch) return nicknameMatch;
 
-  // Then try exact matches with displayName
-  const displayMatch = allTeamsData.find((t) => t.displayName.toLowerCase() === teamNameLower);
+  const displayMatch = allTeamsData.find((t: any) => t.displayName.toLowerCase() === teamNameLower);
   if (displayMatch) return displayMatch;
 
-  // Try matching by parts
   const nameParts = teamNameLower.split(' ').filter(Boolean);
   return allTeamsData.find((t) => {
     const displayNameParts = t.displayName.toLowerCase().split(' ');
@@ -91,29 +89,24 @@ const findTeamData = (teamName: string) => {
   });
 };
 
-// Constants for year handling
-// CURRENT_SEASON = 2024;
 const NUM_SEASONS_TO_SHOW = 4;
 
-// Add function to determine current season dynamically
 const getCurrentSeason = (): number => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth(); // 0-indexed (0 = January, 11 = December)
+  const currentMonth = currentDate.getMonth();
   
   // If we're in the latter part of the year (July-December), we're in the season that starts this year
   // Otherwise, we're in the season that started the previous year
   return currentMonth >= 6 ? currentYear : currentYear - 1;
 };
 
-// Add helper function to generate season options
 const generateSeasonOptions = () => {
   const currentSeason = getCurrentSeason();
   const startYear = currentSeason - (NUM_SEASONS_TO_SHOW - 1);
   return Array.from({ length: NUM_SEASONS_TO_SHOW }, (_, i) => startYear + i);
 };
 
-// Add cache key constant
 const CONFERENCE_CACHE_KEY = 'teamConferenceCache';
 const CACHE_EXPIRY_DAYS = 30; // Cache conference data for 30 days
 
@@ -123,7 +116,6 @@ interface CachedConferenceData {
   conferenceMap: Record<string, string>;
 }
 
-// Add function to check if cache is valid
 const isConferenceCacheValid = (cachedData: CachedConferenceData | null): boolean => {
   if (!cachedData) return false;
   
@@ -139,6 +131,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     search: '',
     season: getCurrentSeason(),
     conference: 'all',
+    seasonType: 'Regular Season',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'barthag', direction: 'desc' });
@@ -147,24 +140,22 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
   const [uniqueConferences, setUniqueConferences] = useState<string[]>([]);
 
   const pathname = usePathname();
-  const league = pathname?.split('/')[1];
+  const league = pathname?.split('/')[1]?.toLowerCase();
 
-  // Create team data cache
   const [teamDataCache] = useState(() => {
     const cache: Record<string, any> = {};
     const uniqueTeams = new Set(initialData.map((t) => t.team));
     uniqueTeams.forEach((team) => {
       const teamNameLower = team.toLowerCase();
-      const matchingSpecialCase = Object.entries(specialCases).find(([key]) => teamNameLower === key);
+      const matchingSpecialCase = Object.entries(specialCasesBT).find(([key]) => teamNameLower === key);
       cache[team] = {
         teamData: findTeamData(team),
-        specialCase: matchingSpecialCase ? specialCases[matchingSpecialCase[0]].toLowerCase() : null,
+        specialCase: matchingSpecialCase ? specialCasesBT[matchingSpecialCase[0]].toLowerCase() : null,
       };
     });
     return cache;
   });
 
-  // Add function to get cached conference data
   const getCachedConferenceData = (): CachedConferenceData | null => {
     try {
       const cached = localStorage.getItem(CONFERENCE_CACHE_KEY);
@@ -175,7 +166,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }
   };
 
-  // Add function to set cached conference data
   const setCachedConferenceData = (conferenceMap: Record<string, string>, season: number) => {
     try {
       const cacheData: CachedConferenceData = {
@@ -189,13 +179,10 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }
   };
 
-  // Modify fetchAndMapConferences to use cache
   const fetchAndMapConferences = async (year: number) => {
     try {
-      // Check cache first
       const cachedData = getCachedConferenceData();
       if (cachedData && isConferenceCacheValid(cachedData) && cachedData.season === year + 1) {
-        // Use cached data
         const teamsWithConference = teams.map(team => ({
           ...team,
           conference: cachedData.conferenceMap[team.team.toLowerCase()] || 'Unknown'
@@ -207,10 +194,8 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
         return;
       }
 
-      // If cache is invalid or missing, fetch new data
       const playerData = await fetchPlayersStatsBT(year + 1);
       
-      // Create a map of team to conference
       const conferenceMap: Record<string, string> = {};
       playerData.forEach((player: any) => {
         if (player.team && player.conference) {
@@ -218,23 +203,19 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
         }
       });
 
-      // Cache the conference data
       setCachedConferenceData(conferenceMap, year + 1);
 
-      // Update teams with conference information
       const teamsWithConference = teams.map(team => ({
         ...team,
         conference: conferenceMap[team.team.toLowerCase()] || 'Unknown'
       }));
 
-      // Update unique conferences
       const conferences = Array.from(new Set(teamsWithConference.map(team => team.conference))).sort();
       setUniqueConferences(conferences);
       setTeams(teamsWithConference);
     } catch (error) {
       console.error('Error fetching conference data:', error);
       
-      // If fetch fails, try to use cached data as fallback
       const cachedData = getCachedConferenceData();
       if (cachedData) {
         const teamsWithConference = teams.map(team => ({
@@ -249,11 +230,10 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }
   };
 
-  // Update fetchYearData to reset selection when loading new data
-  const fetchYearData = async (year: number) => {
+  const fetchYearData = async (year: number, seasonType: string = 'Regular Season') => {
     setIsLoading(true);
     try {
-      const data = await fetchTeamsStatsBT(year);
+      const data = await fetchTeamsStatsBT(year, seasonType);
       setTeams(data);
       setSelectedTeamId(null); // Reset selection when loading new data
       await fetchAndMapConferences(year);
@@ -264,12 +244,10 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }
   };
 
-  // Initial conference mapping on component mount
   useEffect(() => {
     fetchAndMapConferences(filters.season);
   }, []);
 
-  // Update filters with debounced search value
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((prev) => ({ ...prev, search: inputValue }));
@@ -280,7 +258,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     };
   }, [inputValue]);
 
-  // Simplified search handler for immediate input updates
   const handleSearchChange = (value: string) => {
     setInputValue(value);
   };
@@ -292,7 +269,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }));
   };
 
-  // Update filteredTeams to include conference filter
   const filteredTeams = (() => {
     let filtered = teams;
     
@@ -303,7 +279,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     return filtered;
   })();
 
-  // Apply search filter
   const searchFilteredTeams = (() => {
     const searchTerm = filters.search.toLowerCase();
     if (!searchTerm) return filteredTeams;
@@ -319,7 +294,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     });
   })();
 
-  // Update the isLowerBetterStat function to include all defensive stats and other metrics where lower is better
   const isLowerBetterStat = (key: keyof TeamStats | null): boolean => {
     if (!key) return false;
     
@@ -345,12 +319,10 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     return lowerBetterStats.includes(key);
   };
 
-  // Update the sortedTeams logic to handle winning percentage
   const sortedTeams = (() => {
     if (!sortConfig.key) return searchFilteredTeams;
 
     return [...searchFilteredTeams].sort((a, b) => {
-      // Special handling for winning percentage sorting
       if (sortConfig.key === 'winningPercentage') {
         const aWinPct = a.wins / (a.games || 1);
         const bWinPct = b.wins / (b.games || 1);
@@ -361,20 +333,16 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
-      // Handle null/undefined values
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
-      // Convert to numbers if possible for proper numeric comparison
       const numA = !isNaN(Number(aValue)) ? Number(aValue) : aValue;
       const numB = !isNaN(Number(bValue)) ? Number(bValue) : bValue;
 
-      // For defensive stats and turnover percentage, lower is better
       const isLowerBetter = isLowerBetterStat(sortConfig.key);
       const comparison = typeof numA === 'number' && typeof numB === 'number' ? numA - numB : String(aValue).localeCompare(String(bValue));
 
-      // For lower-better stats, we invert the comparison but maintain arrow direction consistency
-      // Down arrow (desc) should always show better values at top
+  
       if (isLowerBetter) {
         return sortConfig.direction === 'desc' ? comparison : -comparison;
       } else {
@@ -383,12 +351,9 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     });
   })();
 
-  // Now that sortedTeams is defined, define the handleRowClick function
   const handleRowClick = (index: number) => {
-    // Check if there's any text selected
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
-      // If text is selected, don't change row selection
       return;
     }
     
@@ -398,21 +363,18 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     }
   };
 
-  // Calculate selected row index based on selectedTeamId
   const selectedRowIndex = useMemo(() => {
     if (!selectedTeamId) return null;
     return sortedTeams.findIndex(team => team.team === selectedTeamId);
   }, [selectedTeamId, sortedTeams]);
 
-  // Update the globalRankMap logic to use the same sorting logic
   const globalRankMap = (() => {
     if (!sortConfig.key) return new Map();
 
     const rankMap = new Map();
 
-    // Sort all filtered teams with nulls at the end
     const sortedAllTeams = [...filteredTeams].sort((a, b) => {
-      // Special handling for winning percentage sorting
+
       if (sortConfig.key === 'winningPercentage') {
         const aWinPct = a.wins / (a.games || 1);
         const bWinPct = b.wins / (b.games || 1);
@@ -423,19 +385,15 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
-      // Always put nulls at the end regardless of sort direction
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
-      // Convert to numbers if possible for proper numeric comparison
       const numA = !isNaN(Number(aValue)) ? Number(aValue) : aValue;
       const numB = !isNaN(Number(bValue)) ? Number(bValue) : bValue;
 
-      // For defensive stats and turnover percentage, lower is better
       const isLowerBetter = isLowerBetterStat(sortConfig.key);
       const comparison = typeof numA === 'number' && typeof numB === 'number' ? numA - numB : String(aValue).localeCompare(String(bValue));
 
-      // For lower-better stats, we invert the comparison but maintain arrow direction consistency
       if (isLowerBetter) {
         return sortConfig.direction === 'desc' ? comparison : -comparison;
       } else {
@@ -443,7 +401,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
       }
     });
 
-    // Create a unique key for each team using team name
     sortedAllTeams.forEach((team, index) => {
       const teamKey = team.team;
       rankMap.set(teamKey, index + 1);
@@ -452,7 +409,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     return rankMap;
   })();
 
-  // Add stat descriptions
   const statDescriptions: { [key: string]: string } = {
     adjOffensiveEfficiency: "Adjusted offensive efficiency (points scored per 100 possessions)",
     adjDefensiveEfficiency: "Adjusted defensive efficiency (points allowed per 100 possessions)",
@@ -483,7 +439,6 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
     defFreeThrowPct: "Defensive free throw percentage"
   };
 
-  // Update the column widths
   const columnWidths = {
     rank: 50,
     compact: 65,
@@ -563,12 +518,12 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
   };
 
   useEffect(() => {
-    const favorites = getFavorites();
+    const favorites = getFavorites(league);
     setFavorites(favorites);
-  }, []);
+  }, [league]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-neutral-950">
+    <div className="h-full flex flex-col overflow-hidden bg-neutral-950 mr-1">
       <div className="p-2 border-b border-neutral-800 flex-shrink-0">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
@@ -590,7 +545,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
                 value={filters.season}
                 onChange={(e) => {
                   setFilters((prev) => ({ ...prev, season: Number(e.target.value) }));
-                  fetchYearData(Number(e.target.value));
+                  fetchYearData(Number(e.target.value), filters.seasonType);
                 }}
                 className="pl-4 cursor-pointer pr-8 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600 appearance-none bg-[length:16px_16px] bg-[right_0.5rem_center] bg-no-repeat bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNy40MSA4LjU5TDEyIDEzLjE3bDQuNTktNC41OEwxOCAxMGwtNiA2LTYtNiAxLjQxLTEuNDF6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==')]"
                 disabled={isLoading}
@@ -607,6 +562,23 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Season Type:</label>
+            <select
+              value={filters.seasonType}
+              onChange={(e) => {
+                const newSeasonType = e.target.value;
+                setFilters((prev) => ({ ...prev, seasonType: newSeasonType }));
+                fetchYearData(filters.season, newSeasonType);
+              }}
+              className="pl-4 cursor-pointer pr-8 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600 appearance-none bg-[length:16px_16px] bg-[right_0.5rem_center] bg-no-repeat bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNy40MSA4LjU5TDEyIDEzLjE3bDQuNTktNC41OEwxOCAxMGwtNiA2LTYtNiAxLjQxLTEuNDF6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==')]"
+              disabled={isLoading}
+            >
+              <option value="Regular Season">Regular Season</option>
+              <option value="Playoffs">Playoffs</option>
+            </select>
           </div>
 
           <div className="flex items-center gap-2">
@@ -763,9 +735,8 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
             const team = sortedTeams[index];
             const teamData = teamDataCache[team.team];
             const record = `${team.wins}-${team.games - team.wins}`;
-            const isFavorite = teamData?.teamData ? favorites[teamData.teamData.id] : false;
+            const isFavorite = teamData?.teamData ? !!favorites[teamData.teamData.id] : false;
 
-            // Helper function to format percentages
             const formatPercentage = (value: number | undefined) => {
               if (value === undefined || value === null) return '';
               return value.toFixed(1);

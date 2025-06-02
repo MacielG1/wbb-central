@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { Event, Competitor } from '@/types/espn';
 import { useEffect, useState } from 'react';
 import getFavorites from '@/lib/getFavorites';
-import fetchTeamData from '@/utils/fetchTeamData';
+import fetchTeamData from '@/utils/NCAAW/fetchTeamData';
 import { useRouter } from 'next/navigation';
 import { StarIcon } from 'lucide-react';
 
@@ -14,7 +14,6 @@ interface ScheduleRowProps {
   game: Event;
   league: string;
   showOnlyTop25?: boolean;
-  tRankMap?: Record<string, number>;
 }
 
 interface TeamDisplayProps {
@@ -115,14 +114,19 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false}: Sche
   const router = useRouter();
 
   useEffect(() => {
-    const favs = getFavorites();
-    setFavorites(favs);
+    const favs = getFavorites(league);
+
+    const favsBooleanMap: Record<string, boolean> = {};
+    Object.keys(favs).forEach(id => {
+      favsBooleanMap[id] = true;
+    });
+    setFavorites(favsBooleanMap);
+    
     const homeTeamId = homeTeam?.team?.id;
     const awayTeamId = awayTeam?.team?.id;
-    const isHomeTeamFavorite = homeTeamId ? favs[homeTeamId] : false;
-    const isAwayTeamFavorite = awayTeamId ? favs[awayTeamId] : false;
+    const isHomeTeamFavorite = homeTeamId ? favsBooleanMap[homeTeamId] : false;
+    const isAwayTeamFavorite = awayTeamId ? favsBooleanMap[awayTeamId] : false;
 
-    // Prefetch favorite teams' data
     if (isHomeTeamFavorite || isAwayTeamFavorite) {
       const teamsToFetch = [];
       if (isHomeTeamFavorite && homeTeamId) teamsToFetch.push(homeTeamId);
@@ -164,10 +168,8 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false}: Sche
       return `${hour12}`;
     });
 
-  // Get broadcast info
   const broadcast = competition.broadcasts?.[0]?.names?.[0];
 
-  // Get box score link
   function goToGame() {
     router.push(`/${league}/game/${game.id}`);
   }

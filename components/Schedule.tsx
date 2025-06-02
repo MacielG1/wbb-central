@@ -83,17 +83,15 @@ function FilterToggle({
 interface ScheduleProps {
   events: any[];
   league: string;
-  tRankMap?: Record<string, number>;
 }
 
-export default function Schedule({ events: initialEvents, league, tRankMap = {} }: ScheduleProps) {
+export default function Schedule({ events: initialEvents, league }: ScheduleProps) {
   const [showOnlyTop25, setShowOnlyTop25] = useState(false);
   const [showOnlyMarchMadness, setShowOnlyMarchMadness] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState(initialEvents);
   const router = useRouter();
 
-  // Check if any March Madness games are available
   const hasMarchMadnessGames = events.some(game => 
     game.competitions[0].notes?.some((note: any) => 
       note.type === "event" && (note.headline?.includes("NCAA") && note.headline?.includes("Championship")) || 
@@ -101,7 +99,6 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
     )
   );
 
-  // Load the values from IndexedDB on mount
   useEffect(() => {
     const loadStoredValues = async () => {
       if (typeof window !== 'undefined') {
@@ -117,7 +114,6 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
     loadStoredValues();
   }, []);
 
-  // Update events when initialEvents changes
   useEffect(() => {
     setEvents(initialEvents);
   }, [initialEvents]);
@@ -179,20 +175,16 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
     const aStatus = a.status.type;
     const bStatus = b.status.type;
 
-    // In progress games first
     if (aStatus.state === 'in' && bStatus.state !== 'in') return -1;
     if (bStatus.state === 'in' && aStatus.state !== 'in') return 1;
 
-    // Then upcoming games
     if (!aStatus.completed && bStatus.completed) return -1;
     if (!bStatus.completed && aStatus.completed) return 1;
 
-    // Finally sort by game time for upcoming games
     if (!aStatus.completed && !bStatus.completed) {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     }
 
-    // For completed games, sort by most recent
     if (aStatus.completed && bStatus.completed) {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
@@ -231,7 +223,6 @@ export default function Schedule({ events: initialEvents, league, tRankMap = {} 
               game={game} 
               league={league} 
               showOnlyTop25={showOnlyTop25} 
-              tRankMap={tRankMap} 
             />
           ))
         )}

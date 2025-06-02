@@ -115,7 +115,8 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
     isWinner, 
     isNeutralSite, 
     opponentLogo,
-    dateInfo
+    dateInfo,
+    isPreseason
   } = useMemo(() => {
     const competition = game.competitions[0];
     const currentTeam = competition.competitors.find((team) => team.team.id === teamId);
@@ -129,6 +130,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
     const isPostponed = competition.status?.type?.id === '6';
     const isWinner = currentTeam.winner ?? false;
     const isNeutralSite = competition.neutralSite ?? false;
+    const isPreseason = game.seasonType.type === 1;
 
     const logoIndex = DARK_COLORED_LOGOS.includes(opponent.team.displayName) ? 1 : 0;
     const opponentLogo = opponent.team.logos?.[logoIndex]?.href;
@@ -146,11 +148,11 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
       isWinner, 
       isNeutralSite, 
       opponentLogo,
-      dateInfo
+      dateInfo,
+      isPreseason
     };
   }, [game, teamId]);
 
-  // Early return if data is not available
   if (!competition || !currentTeam || !opponent) return null;
 
   useLayoutEffect(() => {
@@ -164,7 +166,15 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
 
   const TeamLogo = () => (
     <Link href={`/${league}/${opponent.team.id}`} className="hover:opacity-80 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-      <Image src={opponentLogo} alt={''} width={20} height={20} className="size-5" priority unoptimized />
+      {opponentLogo ? (
+        <Image src={opponentLogo} alt={''} width={20} height={20} className="size-5" priority unoptimized />
+      ) : (
+        <div className="size-5 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-full">
+          <span className="text-[0.65rem] font-medium text-neutral-700 dark:text-neutral-400">
+            {opponent.team.abbreviation?.slice(0, 2) || opponent.team.location?.slice(0, 2)}
+          </span>
+        </div>
+      )}
     </Link>
   );
 
@@ -213,9 +223,19 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
               {getLocationText()}
             </span>
             <div ref={logoRef} className="size-5">
-              {!mounted && opponentLogo && <Image src={opponentLogo} alt={''} width={20} height={20} className="size-5" priority unoptimized />}
+              {!mounted && (
+                opponentLogo ? (
+                  <Image src={opponentLogo} alt={''} width={20} height={20} className="size-5" priority unoptimized />
+                ) : (
+                  <div className="size-5 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-full">
+                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                      {opponent.team.abbreviation?.slice(0, 2) || opponent.team.location?.slice(0, 2)}
+                    </span>
+                  </div>
+                )
+              )}
             </div>
-            <div ref={teamRef} className="ml-[0.45rem] min-w-0 leading-tight flex items-center flex-1">
+            <div ref={teamRef} className="ml-[0.45rem] lg:max-w-[250px] min-w-0 leading-tight flex items-center flex-1">
               {!mounted && (
                 <>
                   <span
@@ -233,6 +253,11 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
                 </>
               )}
             </div>
+            {isPreseason && (
+              <span className="ml-2 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded shrink-0">
+                Pre
+              </span>
+            )}
           </div>
           <div className="flex flex-row-reverse justify-end min-[450px]:flex-row items-center shrink-0 gap-3">
             {dateInfo && isCompleted && (
@@ -263,7 +288,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
           </div>
         </div>
       </Link>
-      {mounted && logoRef.current && opponentLogo && createPortal(<TeamLogo />, logoRef.current)}
+      {mounted && logoRef.current && createPortal(<TeamLogo />, logoRef.current)}
       {mounted && teamRef.current && createPortal(<TeamName />, teamRef.current)}
     </>
   );

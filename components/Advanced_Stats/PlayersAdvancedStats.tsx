@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import React from 'react';
 import { calculateAllThresholds, getStatStyle, getTurnoverStyle, getDefensiveStyle, statDescriptions } from '@/lib/statsColors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import allTeamsData from '@/utils/allTeamsData.json';
+import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import { TableVirtuoso } from 'react-virtuoso';
 import { MoveDown, MoveUp, Loader2, Users } from 'lucide-react';
-import { fetchPlayersStatsBT } from '@/utils/fetchPlayersBT';
+import { fetchPlayersStatsBT } from '@/utils/NCAAW/fetchPlayersBT';
+import { useSearchParams } from 'next/navigation';
+import { specialCasesBT } from '../NCAAWSchedule';
 
 interface PlayerStats {
   playerName: string;
@@ -85,7 +87,6 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-// Add filter interface
 interface FilterConfig {
   minMinutes: number;
   minGames: number;
@@ -96,54 +97,19 @@ interface FilterConfig {
 }
 
 
-export const specialCases: { [key: string]: string } = {
-  connecticut: 'uconn',
-  'n.c. state': 'nc state wolfpack',
-  'miami fl': 'miami hurricanes',
-  albany: 'ualbany great danes',
-  hawaii: "hawai'i rainbow wahine",
-  'illinois chicago': 'uic flames',
-  'texas a&m corpus chris': 'texas a&m-corpus christi islanders',
-  'louisiana monroe': 'ul monroe warhawks',
-  'nicholls st.': 'nicholls colonels',
-  'tennessee martin': 'ut martin skyhawks',
-  'nebraska omaha': 'omaha mavericks',
-  'appalachian st.': 'app state mountaineers',
-  'grambling st.': 'grambling lady tigers',
-  'sam houston st.': 'sam houston bearkats',
-  'gardner webb': "gardner-webb runnin' bulldogs",
-  'san jose st.': 'san josé state spartans',
-  'saint francis': 'st. francis (pa) red flash',
-  liu: 'long island university sharks',
-  'usc upstate': 'south carolina upstate spartans',
-  'arkansas pine bluff': 'arkansas-pine bluff golden lions',
-  'mcneese st.': 'mcneese cowgirls',
-  umkc: 'kansas city roos',
-  mercyhurst: 'mercyhurst lakers',
-  'west georgia': 'georgia state panthers',
-  'bethune cookman': 'bethune-cookman wildcats',
-  'texas a&m commerce': 'east texas a&m lions',
-  'southeastern louisiana': 'se louisiana',
-  'mississippi': 'ole miss rebels',
-};
-
 const findTeamData = (teamName: string) => {
   const teamNameLower = teamName.toLowerCase();
 
-  // Check special cases first
-  if (specialCases[teamNameLower]) {
-    return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCases[teamNameLower] || t.nickname.toLowerCase() === specialCases[teamNameLower]);
+  if (specialCasesBT[teamNameLower]) {
+    return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower]);
   }
 
-  // Then try exact matches with nickname
   const nicknameMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === teamNameLower);
   if (nicknameMatch) return nicknameMatch;
 
-  // Then try exact matches with displayName
   const displayMatch = allTeamsData.find((t) => t.displayName.toLowerCase() === teamNameLower);
   if (displayMatch) return displayMatch;
 
-  // Try matching by parts
   const nameParts = teamNameLower.split(' ').filter(Boolean);
   return allTeamsData.find((t) => {
     const displayNameParts = t.displayName.toLowerCase().split(' ');
@@ -155,16 +121,14 @@ const findTeamData = (teamName: string) => {
   });
 };
 
-// Add helper function to generate season options
 const generateSeasonOptions = () => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth(); // 0-based (0 = January)
+  const currentMonth = currentDate.getMonth();
   
-  // Determine the current season year (the year the season started in)
   const currentSeason = currentMonth >= 8 ? currentYear : currentYear - 1;
   
-  const startYear = currentSeason - 3; // Show last 3 seasons plus current season
+  const startYear = currentSeason - 3;
   return Array.from({ length: 4 }, (_, i) => startYear + i);
 };
 
@@ -189,36 +153,31 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
-  // Function to create team data cache
   const createTeamDataCache = (playerData: PlayerStats[]) => {
     const cache: Record<string, any> = {};
     const uniqueTeams = new Set(playerData.map((p) => p.team));
     uniqueTeams.forEach((team) => {
       const teamNameLower = team.toLowerCase();
-      const matchingSpecialCase = Object.entries(specialCases).find(([key]) => teamNameLower === key);
+      const matchingSpecialCase = Object.entries(specialCasesBT).find(([key]) => teamNameLower === key);
       cache[team] = {
         teamData: findTeamData(team),
-        specialCase: matchingSpecialCase ? specialCases[matchingSpecialCase[0]].toLowerCase() : null,
+        specialCase: matchingSpecialCase ? specialCasesBT[matchingSpecialCase[0]].toLowerCase() : null,
       };
     });
     return cache;
   };
 
-  // Pre-calculate team data for all teams
   const [teamDataCache, setTeamDataCache] = useState(() => createTeamDataCache(initialData));
 
-  // Update teamDataCache when players data changes
   useEffect(() => {
     setTeamDataCache(createTeamDataCache(players));
   }, [players]);
 
-  // Add function to fetch new year data
   const fetchYearData = async (year: number) => {
     setIsLoading(true);
     try {
       const data = await fetchPlayersStatsBT(year);
       setPlayers(data);
-      // Reset selection when loading new data
       setSelectedPlayerId(null);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -227,27 +186,24 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     }
   };
 
-  // Handle year change
   const handleYearChange = (year: number) => {
     setFilters(prev => ({ ...prev, season: year }));
     fetchYearData(year);
   };
 
-  // Update filters with debounced search value
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((prev) => ({ ...prev, search: inputValue }));
-    }, 200); // Increased debounce time to reduce table updates
+    }, 200);
 
     return () => {
       clearTimeout(timer);
     };
   }, [inputValue]);
 
-  // Simplified search handler for immediate input updates
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value); // This updates the input field immediately
+    setInputValue(value);
   };
 
   const [uniqueConferences] = useState(() => {
@@ -256,27 +212,31 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   });
 
   const [uniqueYears] = useState(() => {
-    // const years = Array.from(new Set(initialData.map((p) => p.year))) as string[];
     const years = ['Fr', 'So', 'Jr', 'Sr'];
     return years;
   });
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'porpag', direction: 'desc' });
 
-  // Filter players based on ONLY minimum minutes and games requirements for thresholds
   const baseQualifiedPlayers = (() => {
     const minMinutes = filters.minMinutes;
     const minGames = filters.minGames;
 
+    const maxGamesPlayed = Math.max(...players.map(player => player.gamesPlayed));
+    const effectiveMinGames = maxGamesPlayed >= 10 ? minGames : 0;
+
     return players.filter((player) => {
-      return !(player.minutesPercentage < minMinutes || player.gamesPlayed < minGames);
+      return !(player.minutesPercentage < minMinutes || player.gamesPlayed < effectiveMinGames);
     });
   })();
 
-  // Calculate thresholds based on base qualified players - these players only meet minutes/games requirements
+  const effectiveMinGames = useMemo(() => {
+    const maxGamesPlayed = Math.max(...players.map(player => player.gamesPlayed));
+    return maxGamesPlayed >= 10 ? filters.minGames : 0;
+  }, [players, filters.minGames]);
+
   const thresholds = calculateAllThresholds(baseQualifiedPlayers);
 
-  // Now apply conference and year filters
   const qualifiedPlayers = (() => {
     const conference = filters.conference;
     const year = filters.year;
@@ -293,38 +253,30 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     return filtered;
   })();
 
-  // Update search filter to use debounced value
   const searchFilteredPlayers = (() => {
     const searchTerm = filters.search.toLowerCase();
     if (!searchTerm) return qualifiedPlayers;
 
-    // Pre-process search terms for faster matching
     const searchTerms = searchTerm.split(' ').filter(Boolean);
     
     return qualifiedPlayers.filter((player) => {
       const { teamData, specialCase } = teamDataCache[player.team];
       
-      // Create a single string to search through
       const searchableText = `${player.playerName.toLowerCase()} ${specialCase || ''} ${teamData?.nickname.toLowerCase() || ''} ${teamData?.displayName.toLowerCase() || ''}`;
       
-      // Check if all search terms are found in the searchable text
       return searchTerms.every(term => searchableText.includes(term));
     });
   })();
 
-  // Sort players
   const sortedPlayers = (() => {
     if (!sortConfig.key) return searchFilteredPlayers;
 
     const compareValues = (a: any, b: any, key: keyof PlayerStats): number => {
-      // Both null values are considered equal
       if ((a === null || a === undefined) && (b === null || b === undefined)) return 0;
 
-      // Convert to numbers if possible for proper numeric comparison
       const numA = !isNaN(Number(a)) ? Number(a) : a;
       const numB = !isNaN(Number(b)) ? Number(b) : b;
 
-      // For defensive stats and turnover percentage, lower is better but we want consistent arrow direction
       if (key === 'turnoverPercentage' || key === 'defensiveRating' || key === 'adjustedDefensiveRating') {
         return typeof numA === 'number' && typeof numB === 'number' ? numA - numB : String(a).localeCompare(String(b));
       }
@@ -335,13 +287,11 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
 
-      // Always put nulls at the end regardless of sort direction
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
       const comparison = compareValues(aValue, bValue, sortConfig.key!);
 
-      // For defensive stats and turnover percentage, we reverse the sort direction to maintain arrow consistency
       if (sortConfig.key === 'turnoverPercentage' || sortConfig.key === 'defensiveRating' || sortConfig.key === 'adjustedDefensiveRating') {
         return sortConfig.direction === 'asc' ? -comparison : comparison;
       }
@@ -349,22 +299,18 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     });
   })();
 
-  // Calculate global rankings for the current sort configuration
   const globalRankMap = (() => {
     if (!sortConfig.key) return new Map();
 
     const rankMap = new Map();
 
-    // Sort all qualified players with nulls at the end
     const sortedAllPlayers = [...qualifiedPlayers].sort((a, b) => {
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
 
-      // Always put nulls at the end regardless of sort direction
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
-      // Compare non-null values
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         const comparison = aValue - bValue;
         if (sortConfig.key === 'turnoverPercentage' || sortConfig.key === 'defensiveRating' || sortConfig.key === 'adjustedDefensiveRating') {
@@ -373,12 +319,10 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
         return sortConfig.direction === 'asc' ? comparison : -comparison;
       }
 
-      // Handle string comparisons
       const comparison = String(aValue).localeCompare(String(bValue));
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
 
-    // Create a unique key for each player using name and team
     sortedAllPlayers.forEach((player, index) => {
       const playerKey = `${player.playerName}_${player.team}`;
       rankMap.set(playerKey, index + 1);
@@ -402,7 +346,6 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     } 
   }, [sortedPlayers]);
 
-  // Calculate selected row index based on selectedPlayerId
   const selectedRowIndex = useMemo(() => {
     if (!selectedPlayerId) return null;
     return sortedPlayers.findIndex(
@@ -510,7 +453,6 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     );
   }), [handleRowClick, getRowStyle]);
 
-  // Cache cell styles
   const cellStyleCache = useMemo(() => new Map<string, React.CSSProperties>(), []);
   const getCachedCellStyle = useCallback((baseStyle: any, index: number, isFixed: boolean = false) => {
     const key = `${JSON.stringify(baseStyle)}-${index}-${isFixed}-${selectedRowIndex === index}`;
@@ -550,7 +492,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
             <label className="text-sm">Min Games:</label>
             <input
               type="number"
-              value={filters.minGames}
+              value={effectiveMinGames}
               onChange={(e) => setFilters((prev) => ({ ...prev, minGames: Number(e.target.value) }))}
               className="w-20 pl-4 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600"
               disabled={isLoading}

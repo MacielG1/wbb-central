@@ -17,12 +17,9 @@ export default function DateSelector({ league }: DateSelectorProps) {
   const currentDateRef = useRef<HTMLAnchorElement>(null);
   const [isContentReady, setIsContentReady] = useState(false);
 
-  // Get current date from URL or use today
   const currentDate = searchParams.get('date') ? parseUrlDate(searchParams.get('date')!) : new Date();
 
-  // Parse date from YYYY-MM-DD format
   function parseUrlDate(dateString: string) {
-    // Remove hyphens from the date string before parsing
     const cleanDate = dateString.replace(/-/g, '');
     const year = parseInt(cleanDate.substring(0, 4));
     const month = parseInt(cleanDate.substring(4, 6)) - 1;
@@ -33,7 +30,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
   // Get available dates from calendar
   const availableDates = league.calendar.map((dateString) => {
     const date = new Date(dateString);
-    // Adjust for timezone if needed
     date.setHours(0, 0, 0, 0);
     return date;
   });
@@ -59,7 +55,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
     ? findClosestAvailableDate(currentDate, availableDates) 
     : null;
 
-  // Format date for URL (YYYY-MM-DD format)
   function formatDateForUrl(date: Date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -67,7 +62,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
     return `${year}-${month}-${day}`;
   }
 
-  // Format date for display
   function formatDateForDisplay(date: Date) {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -90,7 +84,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
     });
   }
 
-  // Create URL with new date
   const createQueryString = useCallback(
     (date: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -100,7 +93,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
     [searchParams]
   );
 
-  // Scroll dates left or right
   function scrollDates(direction: 'left' | 'right') {
     if (!scrollContainerRef.current) return;
 
@@ -124,16 +116,13 @@ export default function DateSelector({ league }: DateSelectorProps) {
     }
   }, [currentDate, closestAvailableDate]);
 
-  // Set up ResizeObserver to detect when container is ready
   useEffect(() => {
     if (!scrollContainerRef.current) return;
    
-    // Mark content as ready after a short delay to ensure DOM is stable
     const readyTimer = setTimeout(() => {
       setIsContentReady(true);
     }, 100);
 
-    // Set up ResizeObserver to detect when container dimensions change
     const resizeObserver = new ResizeObserver(() => {
       if (scrollContainerRef.current && scrollContainerRef.current.clientWidth > 0) {
         setIsContentReady(true);
@@ -148,11 +137,9 @@ export default function DateSelector({ league }: DateSelectorProps) {
     };
   }, []);
 
-  // Scroll to current date with multiple retries
   useEffect(() => {
     if (!isContentReady) return;
 
-    // Initial scroll attempt
     scrollToCurrentDate();
 
     const retryDelays = [100, 500, 2000];
@@ -160,13 +147,11 @@ export default function DateSelector({ league }: DateSelectorProps) {
       setTimeout(scrollToCurrentDate, delay)
     );
 
-    // Clean up timers on unmount
     return () => {
       retryTimers.forEach(timer => clearTimeout(timer));
     };
   }, [isContentReady, scrollToCurrentDate]);
 
-  // Also scroll when the current date changes
   useEffect(() => {
     if (isContentReady) {
       scrollToCurrentDate();
@@ -182,7 +167,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
       <div ref={scrollContainerRef} className="flex space-x-1 overflow-x-auto scrollbar-hide mx-2 scroll-smooth">
         {availableDates.map((date) => {
           const urlDate = formatDateForUrl(date);
-          // Check if this is the current date OR the closest date if current date is not available
           const isCurrentDate = date.toDateString() === currentDate.toDateString();
           const isClosestDate = !isCurrentDate && closestAvailableDate && 
                                date.toDateString() === closestAvailableDate.toDateString();
