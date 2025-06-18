@@ -648,7 +648,10 @@ function calculateWNBAThresholds(data: any[]) {
     'steals',
     'blocks',
     'minutes',
-    'gamesPlayed'
+    'gamesPlayed',
+    'personalFouls',
+    'personalFoulsDrawn',
+    'plusMinus'
   ];
 
   const thresholds: { [key: string]: StatThresholds } = {};
@@ -694,6 +697,27 @@ export function getDefensiveStyle(value: number, thresholds: StatThresholds): Ce
   return getZScoreStyle(zScore);
 }
 
+// Special handling for personal fouls (lower is better)
+export function getPersonalFoulsStyle(value: number, thresholds: StatThresholds): CellStyle {
+  if (isNaN(value) || value === null) {
+    return {
+      backgroundColor: '#171717',
+      color: 'white',
+    };
+  }
+
+  if (value === 0) {
+    return {
+      backgroundColor: 'rgb(0, 88, 0)',
+      color: 'white',
+    };
+  }
+
+  // Invert the z-score since lower personal fouls is better
+  const zScore = (thresholds.mean - value) / thresholds.stdDev;
+  return getZScoreStyle(zScore, 'turnover');
+}
+
 // Stat descriptions for tooltips
 export const statDescriptions: { [key: string]: string } = {
   minutesPercentage: "% of team's total minutes played",
@@ -736,11 +760,14 @@ export const statDescriptions: { [key: string]: string } = {
   rimAttempts: 'Total field goal attempts at the rim',
   midRangeMakes: 'Total mid-range jump shots made',
   midRangeAttempts: 'Total mid-range jump shot attempts',
-  offensiveRebounds: 'Total offensive rebounds in the season',
-  defensiveRebounds: 'Total defensive rebounds in the season',
-  totalRebounds: 'Total combined rebounds in the season',
-  assists: 'Total assists in the season',
-  steals: 'Total steals in the season',
-  blocks: 'Total blocks in the season',
-  points: 'Total points scored in the season',
+  offensiveRebounds: 'Offensive rebounds per game',
+  defensiveRebounds: 'Defensive rebounds per game',
+  totalRebounds: 'Total rebounds per game',
+  assists: 'Assists per game',
+  steals: 'Steals per game',
+  blocks: 'Blocks per game',
+  points: 'Points per game',
+  personalFouls: 'Personal fouls committed per game',
+  personalFoulsDrawn: 'Personal fouls drawn per game',
+  plusMinus: 'Point differential when player is on court',
 };

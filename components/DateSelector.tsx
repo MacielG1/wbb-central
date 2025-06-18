@@ -107,13 +107,23 @@ export default function DateSelector({ league }: DateSelectorProps) {
   }
 
   const scrollToCurrentDate = useCallback(() => {
-    if (scrollContainerRef.current && currentDateRef.current) {
-      currentDateRef.current.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest',
-      });
-    }
+    if (!scrollContainerRef.current || !currentDateRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const target = currentDateRef.current;
+    
+    // Calculate the center position
+    const containerWidth = container.clientWidth;
+    const targetLeft = target.offsetLeft;
+    const targetWidth = target.clientWidth;
+    
+    // Calculate the scroll position that would center the target
+    const scrollLeft = targetLeft - (containerWidth / 2) + (targetWidth / 2);
+    
+    container.scrollTo({
+      left: scrollLeft,
+      behavior: 'smooth',
+    });
   }, [currentDate, closestAvailableDate]);
 
   useEffect(() => {
@@ -142,9 +152,14 @@ export default function DateSelector({ league }: DateSelectorProps) {
 
     scrollToCurrentDate();
 
-    const retryDelays = [100, 500, 2000];
+    // Multiple retry attempts with increasing delays
+    const retryDelays = [100, 300, 500, 1000, 3000];
     const retryTimers = retryDelays.map(delay => 
-      setTimeout(scrollToCurrentDate, delay)
+      setTimeout(() => {
+        if (scrollContainerRef.current && currentDateRef.current) {
+          scrollToCurrentDate();
+        }
+      }, delay)
     );
 
     return () => {
@@ -152,11 +167,22 @@ export default function DateSelector({ league }: DateSelectorProps) {
     };
   }, [isContentReady, scrollToCurrentDate]);
 
+  // Add a mutation observer to handle dynamic content changes
   useEffect(() => {
-    if (isContentReady) {
+    if (!isContentReady || !scrollContainerRef.current) return;
+
+    const observer = new MutationObserver(() => {
       scrollToCurrentDate();
-    }
-  }, [currentDate, isContentReady, scrollToCurrentDate]);
+    });
+
+    observer.observe(scrollContainerRef.current, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    return () => observer.disconnect();
+  }, [isContentReady, scrollToCurrentDate]);
 
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-neutral-900 border-b-0 border-neutral-200 dark:border-neutral-800">

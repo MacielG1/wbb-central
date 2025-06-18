@@ -50,8 +50,8 @@ export default async function WNBAStandings({ currentTeam, variant = 'compact' }
               return (
                 <tr
                   key={team.id}
-                  className={`border-b border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 ${
-                    isCurrentTeam ? (isCompact ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-neutral-700/70') : ''
+                  className={`border-b border-neutral-200 dark:border-neutral-800 ${
+                    isCurrentTeam ? (isCompact ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-neutral-700/70 hover:bg-neutral-700/70') : ''
                   }`}
                 >
                   <td className={`${isCompact ? 'px-1 py-2' : 'px-2 py-2'} text-center font-medium text-neutral-800 dark:text-neutral-200 ${isCompact ? 'text-sm' : ''}`}>

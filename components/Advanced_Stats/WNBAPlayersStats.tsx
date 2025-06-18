@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import React from 'react';
-import { calculateAllThresholds, getStatStyle, getTurnoverStyle, getDefensiveStyle, statDescriptions } from '@/lib/statsColors';
+import { calculateAllThresholds, getStatStyle, getTurnoverStyle, getDefensiveStyle, getPersonalFoulsStyle, statDescriptions } from '@/lib/statsColors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { TableVirtuoso } from 'react-virtuoso';
 import { MoveDown, MoveUp, Loader2, Users } from 'lucide-react';
 import { fetchWNBAPlayerStats, WNBAPlayerStats } from '@/utils/WNBA/fetchPlayersStats';
-import { getTeamLogoUrl, defaultWnbaLogo } from '@/utils/WNBA/teamLogos';
+import { getTeamLogoUrl } from '@/utils/WNBA/teamLogos';
 
 const getFullTeamName = (teamAbbr: string): string => {
   const teamMapping: { [key: string]: string } = {
@@ -50,6 +50,7 @@ interface FilterConfig {
   minGames: number;
   search: string;
   season: number;
+  team: string;
 }
 
 interface WNBAPlayersStatsProps {
@@ -84,6 +85,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
     minGames: 5,
     search: '',
     season: initialYear,
+    team: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
@@ -112,6 +114,10 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
     fetchYearData(year);
   };
 
+  const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilters((prev) => ({ ...prev, team: e.target.value }));
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((prev) => ({ ...prev, search: inputValue }));
@@ -129,9 +135,17 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'points', direction: 'desc' });
 
+  // Get unique teams for dropdown
+  const teamOptions = useMemo(() => {
+    const teams = Array.from(new Set(players.map((p) => p.team)));
+    teams.sort();
+    return teams;
+  }, [players]);
+
   const qualifiedPlayers = useMemo(() => {
     const minMinutes = filters.minMinutes;
     const minGames = filters.minGames;
+    const team = filters.team;
 
     // Get the maximum number of games played by any player
     const maxGamesPlayed = Math.max(...players.map((player) => player.gamesPlayed));
@@ -140,9 +154,11 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
     const effectiveMinGames = maxGamesPlayed >= 10 ? minGames : 0;
 
     return players.filter((player) => {
-      return !(player.minutes < minMinutes || player.gamesPlayed < effectiveMinGames);
+      if (player.minutes < minMinutes || player.gamesPlayed < effectiveMinGames) return false;
+      if (team && player.team !== team) return false;
+      return true;
     });
-  }, [players, filters.minMinutes, filters.minGames]);
+  }, [players, filters.minMinutes, filters.minGames, filters.team]);
 
   // Calculate effective min games for display
   const effectiveMinGames = useMemo(() => {
@@ -178,7 +194,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         // Special case: turnovers should always be sorted lowest-to-highest (ascending)
         if (sortConfig.key === 'turnovers') {
-          return aValue - bValue;
+          const comparison = aValue - bValue;
+          return sortConfig.direction === 'asc' ? comparison : -comparison;
         }
         const comparison = aValue - bValue;
         return sortConfig.direction === 'asc' ? comparison : -comparison;
@@ -335,14 +352,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
     () =>
       React.memo(({ item: _item, ...props }: any) => {
         const index = props['data-index'] as number;
-        return (
-          <tr
-            {...props}
-            className="border-b bg-neutral-900 hover:bg-gray-50 text-xs"
-            onClick={() => handleRowClick(index)}
-            style={getRowStyle(index)}
-          />
-        );
+        return <tr {...props} className="border-b bg-neutral-900 hover:bg-gray-50 text-xs" onClick={() => handleRowClick(index)} style={getRowStyle(index)} />;
       }),
     [handleRowClick, getRowStyle]
   );
@@ -404,7 +414,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
             <input
               type="number"
               value={filters.minMinutes}
-              onChange={(e) => setFilters((prev) => ({ ...prev, minMinutes: Number(e.target.value) }))}
+              min={0}
+              onChange={(e) => setFilters((prev) => ({ ...prev, minMinutes: Math.max(0, Number(e.target.value)) }))}
               className="w-20 pl-4 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600"
               disabled={isLoading || !players.length}
             />
@@ -415,7 +426,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
             <input
               type="number"
               value={effectiveMinGames}
-              onChange={(e) => setFilters((prev) => ({ ...prev, minGames: Number(e.target.value) }))}
+              min={0}
+              onChange={(e) => setFilters((prev) => ({ ...prev, minGames: Math.max(0, Number(e.target.value)) }))}
               className="w-20 pl-4 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600"
               disabled={isLoading || !players.length}
             />
@@ -444,9 +456,24 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
             </div>
           </div>
 
-          <div className="text-sm text-neutral-500">
-            {players.length > 0 && `Showing ${searchFilteredPlayers.length} of ${players.length} players`}
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Team:</label>
+            <select
+              value={filters.team}
+              onChange={handleTeamChange}
+              className="pl-4 pr-8 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600 appearance-none"
+              disabled={isLoading || !players.length}
+            >
+              <option value="">All</option>
+              {teamOptions.map((team) => (
+                <option key={team} value={team}>
+                  {getFullTeamName(team)}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <div className="text-sm text-neutral-500">{players.length > 0 && `Showing ${searchFilteredPlayers.length} of ${players.length} players`}</div>
 
           <Link
             href={`/${league}/teams`}
@@ -505,11 +532,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.rank }} onClick={() => handleSort('rank')}>
                       Rank {getSortIndicator('rank')}
                     </th>
-                    <th
-                      className={nameTeamCellClass}
-                      style={{ ...secondColumnStyle, width: columnWidths.playerName }}
-                      onClick={() => handleSort('playerName')}
-                    >
+                    <th className={nameTeamCellClass} style={{ ...secondColumnStyle, width: columnWidths.playerName }} onClick={() => handleSort('playerName')}>
                       Player {getSortIndicator('playerName')}
                     </th>
                     <th
@@ -526,72 +549,67 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     >
                       Team {getSortIndicator('team')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.gp }} onClick={() => handleSort('gamesPlayed')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.gp }} onClick={() => handleSort('gamesPlayed')} title={statDescriptions.gamesPlayed}>
                       GP {getSortIndicator('gamesPlayed')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('minutes')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('minutes')} title={statDescriptions.minutes}>
                       MIN {getSortIndicator('minutes')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('points')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('points')} title={statDescriptions.points}>
                       PTS {getSortIndicator('points')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('assists')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('assists')} title={statDescriptions.assists}>
                       AST {getSortIndicator('assists')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('rebounds')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('rebounds')} title={statDescriptions.rebounds}>
                       REB {getSortIndicator('rebounds')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('steals')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('steals')} title={statDescriptions.steals}>
                       STL {getSortIndicator('steals')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('blocks')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('blocks')} title={statDescriptions.blocks}>
                       BLK {getSortIndicator('blocks')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('efficiency')}>
-                      EFF {getSortIndicator('efficiency')}
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('personalFoulsDrawn')} title={statDescriptions.personalFoulsDrawn}>
+                      PFD {getSortIndicator('personalFoulsDrawn')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgMade')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('plusMinus')} title={statDescriptions.plusMinus}>
+                      +/- {getSortIndicator('plusMinus')}
+                    </th>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgMade')} title={statDescriptions.fgMade}>
                       FGM {getSortIndicator('fgMade')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgAttempted')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgAttempted')} title={statDescriptions.fgAttempted}>
                       FGA {getSortIndicator('fgAttempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgPercentage')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgPercentage')} title={statDescriptions.fgPercentage}>
                       FG% {getSortIndicator('fgPercentage')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Made')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Made')} title={statDescriptions.fg3Made}>
                       3PM {getSortIndicator('fg3Made')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Attempted')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Attempted')} title={statDescriptions.fg3Attempted}>
                       3PA {getSortIndicator('fg3Attempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Percentage')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Percentage')} title={statDescriptions.fg3Percentage}>
                       3P% {getSortIndicator('fg3Percentage')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftMade')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftMade')} title={statDescriptions.ftMade}>
                       FTM {getSortIndicator('ftMade')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftAttempted')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftAttempted')} title={statDescriptions.ftAttempted}>
                       FTA {getSortIndicator('ftAttempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftPercentage')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftPercentage')} title={statDescriptions.ftPercentage}>
                       FT% {getSortIndicator('ftPercentage')}
                     </th>
-                    <th
-                      className={cellClass}
-                      style={{ ...headerStyle, width: columnWidths.basicStats }}
-                      onClick={() => handleSort('offensiveRebounds')}
-                    >
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('offensiveRebounds')} title={statDescriptions.offensiveRebounds}>
                       OREB {getSortIndicator('offensiveRebounds')}
                     </th>
-                    <th
-                      className={cellClass}
-                      style={{ ...headerStyle, width: columnWidths.basicStats }}
-                      onClick={() => handleSort('defensiveRebounds')}
-                    >
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('defensiveRebounds')} title={statDescriptions.defensiveRebounds}>
                       DREB {getSortIndicator('defensiveRebounds')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('turnovers')}>
+                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('turnovers')} title={statDescriptions.turnovers}>
                       TOV {getSortIndicator('turnovers')}
                     </th>
                   </tr>
@@ -708,14 +726,26 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     {player.blocks.toFixed(1)}
                   </td>
                   <td
-                    key="efficiency"
+                    key="personalFoulsDrawn"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(getStatStyle(player.efficiency, thresholds?.efficiency, 'efficiency'), index),
+                      ...getCachedCellStyle(getStatStyle(player.personalFoulsDrawn, thresholds?.personalFoulsDrawn, 'personalFoulsDrawn'), index),
                       width: columnWidths.basicStats,
                     }}
+                    title={statDescriptions.personalFoulsDrawn}
                   >
-                    {player.efficiency.toFixed(1)}
+                    {player.personalFoulsDrawn.toFixed(1)}
+                  </td>
+                  <td
+                    key="plusMinus"
+                    className={cellClass}
+                    style={{
+                      ...getCachedCellStyle(getStatStyle(player.plusMinus, thresholds?.plusMinus, 'plusMinus'), index),
+                      width: columnWidths.basicStats,
+                    }}
+                    title={statDescriptions.plusMinus}
+                  >
+                    {player.plusMinus.toFixed(1)}
                   </td>
                   <td
                     key="fgMade"
@@ -741,10 +771,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="fgPct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(
-                        getStatStyle(player.fgPercentage * 100, thresholds?.fgPercentage, 'fgPercentage', player.fgAttempted),
-                        index
-                      ),
+                      ...getCachedCellStyle(getStatStyle(player.fgPercentage * 100, thresholds?.fgPercentage, 'fgPercentage', player.fgAttempted), index),
                       width: columnWidths.basicStats,
                     }}
                   >
@@ -774,10 +801,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="fg3Pct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(
-                        getStatStyle(player.fg3Percentage * 100, thresholds?.fg3Percentage, 'fg3Percentage', player.fg3Attempted),
-                        index
-                      ),
+                      ...getCachedCellStyle(getStatStyle(player.fg3Percentage * 100, thresholds?.fg3Percentage, 'fg3Percentage', player.fg3Attempted), index),
                       width: columnWidths.basicStats,
                     }}
                   >
@@ -807,10 +831,7 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="ftPct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(
-                        getStatStyle(player.ftPercentage * 100, thresholds?.ftPercentage, 'ftPercentage', player.ftAttempted),
-                        index
-                      ),
+                      ...getCachedCellStyle(getStatStyle(player.ftPercentage * 100, thresholds?.ftPercentage, 'ftPercentage', player.ftAttempted), index),
                       width: columnWidths.basicStats,
                     }}
                   >
