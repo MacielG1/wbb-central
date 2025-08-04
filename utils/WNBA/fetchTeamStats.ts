@@ -1,4 +1,4 @@
-"use server"
+'use server';
 import { unstable_cacheLife } from 'next/cache';
 
 export interface WNBATeamStats {
@@ -32,56 +32,59 @@ export interface WNBATeamStats {
   season: number;
 }
 
-// Team name to abbreviation mapping
 const teamNameToAbbr: Record<string, string> = {
-  "Atlanta Dream": "ATL",
-  "Chicago Sky": "CHI",
-  "Connecticut Sun": "CON",
-  "Dallas Wings": "DAL",
-  "Las Vegas Aces": "LV",
-  "Los Angeles Sparks": "LA",
-  "Minnesota Lynx": "MIN",
-  "New York Liberty": "NY",
-  "Phoenix Mercury": "PHX",
-  "Seattle Storm": "SEA",
-  "Washington Mystics": "WAS",
-  "Indiana Fever": "IND",
+  'Atlanta Dream': 'ATL',
+  'Chicago Sky': 'CHI',
+  'Connecticut Sun': 'CON',
+  'Dallas Wings': 'DAL',
+  'Las Vegas Aces': 'LV',
+  'Los Angeles Sparks': 'LA',
+  'Minnesota Lynx': 'MIN',
+  'New York Liberty': 'NY',
+  'Phoenix Mercury': 'PHX',
+  'Seattle Storm': 'SEA',
+  'Washington Mystics': 'WAS',
+  'Indiana Fever': 'IND',
 };
 
-export async function fetchWNBAteamStats(season: number = new Date().getFullYear(), seasonType: string = "Regular Season"): Promise<WNBATeamStats[]> {
+export async function fetchWNBAteamStats(season: number = new Date().getFullYear(), seasonType: string = 'Regular Season'): Promise<WNBATeamStats[]> {
   'use cache';
   unstable_cacheLife('minutes');
 
-  const url = `https://stats.wnba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&GameScope=&GameSegment=&LastNGames=0&LeagueID=10&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=${encodeURIComponent(seasonType)}`;
+  const url = `https://stats.wnba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&GameScope=&GameSegment=&LastNGames=0&LeagueID=10&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=${encodeURIComponent(
+    seasonType
+  )}`;
 
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Referer": "https://stats.wnba.com/teams/traditional/?sort=W_PCT&dir=-1&Season=2023&SeasonType=Regular%20Season",
-        "X-NewRelic-ID": "VQECWF5UChAHUlNTBwgBVw==",
-        "x-nba-stats-origin": "stats",
-        "x-nba-stats-token": "true",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin"
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0',
+        Accept: 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        Referer: 'https://stats.wnba.com/teams/traditional/?sort=W_PCT&dir=-1&Season=2023&SeasonType=Regular%20Season',
+        'X-NewRelic-ID': 'VQECWF5UChAHUlNTBwgBVw==',
+        'x-nba-stats-origin': 'stats',
+        'x-nba-stats-token': 'true',
+        DNT: '1',
+        Connection: 'keep-alive',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+      },
     });
     const data = await response.json();
-
-    if (!data || !data.resultSets || !data.resultSets[0] || !data.resultSets[0].rowSet) {
+    if (!data || typeof data !== 'object' || !('resultSets' in data) || !Array.isArray((data as any).resultSets)) {
       console.error('Invalid data format from WNBA Team Stats API:', data);
       return [];
     }
-
-    const headers = data.resultSets[0].headers;
-    const rows = data.resultSets[0].rowSet;
-
+    const resultSets = (data as any).resultSets;
+    if (!resultSets[0] || !resultSets[0].rowSet) {
+      console.error('Invalid data format from WNBA Team Stats API:', data);
+      return [];
+    }
+    const headers = resultSets[0].headers;
+    const rows = resultSets[0].rowSet;
     return rows.map((row: any[]) => {
       const obj: any = {};
       headers.forEach((header: string, i: number) => {
@@ -122,4 +125,4 @@ export async function fetchWNBAteamStats(season: number = new Date().getFullYear
     console.error(`Error fetching WNBA team stats for season ${season}:`, error);
     return [];
   }
-} 
+}

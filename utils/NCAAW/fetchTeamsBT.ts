@@ -1,4 +1,4 @@
-"use server"
+'use server';
 import { unstable_cacheLife } from 'next/cache';
 
 interface TeamStats {
@@ -33,7 +33,6 @@ interface TeamStats {
   defFreeThrowPct: number;
   season: number;
 }
-
 
 async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -81,33 +80,45 @@ function formatBTTeamData(team: any[], year: number): TeamStats {
     winsAboveBubble: team[34],
     freeThrowPct: team[35],
     defFreeThrowPct: team[36],
-    season: year
+    season: year,
   };
 }
 
-export async function fetchTeamsStatsBT(year?: number, seasonType: string = "Regular Season") {
+export async function fetchTeamsStatsBT(year?: number, seasonType: string = 'Regular Season') {
   'use cache';
   unstable_cacheLife('minutes');
-  
+
   // If year is not provided, use current year
   const currentYear = new Date().getFullYear();
   const yearToUse = year || currentYear;
-
 
   const url = `${process.env.NCAAW_fetchTeamsBT}?year=${yearToUse}&json=1`;
 
   try {
     const response = await fetchWithRetry(url, {
-      next: { revalidate: 60 }
+      next: { revalidate: 60 },
     });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error(`API returned non-JSON response for year ${yearToUse}:`, text.substring(0, 200));
+      throw new Error(`API returned non-JSON response. Status: ${response.status}, Content-Type: ${contentType}`);
+    }
+
     const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error(`API returned non-array data for year ${yearToUse}:`, data);
+      throw new Error('API returned non-array data');
+    }
 
     const formattedData = data.map((team: any) => formatBTTeamData(team, yearToUse));
 
-    // Cache the result
     return formattedData;
   } catch (error) {
     console.error(`Error fetching team data for year ${yearToUse}:`, error);
-    throw error;
+
+    return [];
   }
-} 
+}

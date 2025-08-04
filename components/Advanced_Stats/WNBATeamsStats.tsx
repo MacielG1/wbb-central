@@ -7,10 +7,9 @@ import { getTeamLogoUrl } from '@/utils/WNBA/teamLogos';
 import { TableVirtuoso } from 'react-virtuoso';
 import { MoveDown, MoveUp, Loader2, Users, User, Star } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link'; 
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import getFavorites from '@/lib/getFavorites';
-
 
 const generateSeasonOptions = () => {
   const currentYear = new Date().getFullYear();
@@ -19,7 +18,7 @@ const generateSeasonOptions = () => {
 };
 
 type SortConfig = {
-  key: keyof WNBATeamStats | 'rank' | null; // Added 'rank'
+  key: keyof WNBATeamStats | 'rank' | null;
   direction: 'asc' | 'desc';
 };
 
@@ -59,7 +58,7 @@ const headerStyle: React.CSSProperties = {
 
 const cellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black ';
 const nameTeamCellClass = 'px-1.5 py-1 pl-2 text-left bg-neutral-900 border-r border-b border-black ';
-const smallerCellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black'
+const smallerCellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black'; // For Rank
 
 const firstColumnStyle: React.CSSProperties = {
   ...headerStyle,
@@ -73,7 +72,8 @@ const firstColumnStyle: React.CSSProperties = {
 const secondColumnStyle: React.CSSProperties = {
   ...headerStyle,
   position: 'sticky',
-  left: columnWidths.rank, 
+  left: columnWidths.rank,
+  zIndex: 101,
   backgroundColor: '#4f39f6',
   backgroundClip: 'padding-box',
 };
@@ -97,9 +97,9 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'winPct', direction: 'desc' });
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [hasAutoSelectedYear, setHasAutoSelectedYear] = useState(false);
-  const [favorites, setFavorites] = useState<Record<string, any>>({});
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null); // For row selection
+  const [hasAutoSelectedYear, setHasAutoSelectedYear] = useState(false); // For auto-selecting year
+  const [favorites, setFavorites] = useState<Record<string, any>>({}); // Add favorites state
 
   useEffect(() => {
     const favs = getFavorites(league);
@@ -178,6 +178,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
 
+    // Add rank based on the sorted order
     return sorted.map((team, index) => ({ ...team, rank: index + 1 }));
   }, [searchFilteredTeams, sortConfig]);
 
@@ -188,17 +189,16 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     }));
   };
 
-  // Handle row click for selection
   const handleRowClick = useCallback(
     (index: number) => {
       const selection = window.getSelection();
       if (selection && selection.toString().length > 0) {
         return;
       }
-      
+
       if (index >= 0 && index < sortedTeams.length) {
         const team = sortedTeams[index];
-        const teamId = team.teamId; // Use teamId as a unique ID for teams instead of teamName
+        const teamId = team.teamId;
         setSelectedTeamId((prevId) => (prevId === teamId ? null : teamId));
       }
     },
@@ -219,6 +219,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     );
   };
 
+  // Get row styling based on selection state
   const getRowStyle = useCallback(
     (index: number): React.CSSProperties => ({
       cursor: 'pointer',
@@ -231,11 +232,12 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [selectedRowIndex]
   );
 
+  // Get cell styling (adjusts background for selected row, especially for sticky columns)
   const getCellStyle = useCallback(
     (baseStyle: any, index: number, isFixed: boolean = false): React.CSSProperties => {
       const selected = selectedRowIndex === index;
       const backgroundColor = selected ? '#1a1835' : baseStyle.backgroundColor || '#171717';
-      const color = baseStyle.color || 'white';
+      const color = baseStyle.color || 'white'; // Default text color
 
       if (isFixed) {
         return {
@@ -248,8 +250,8 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
       return { ...baseStyle, backgroundColor, color, boxShadow: 'none' };
     },
-    [selectedRowIndex]
-  ); 
+    [selectedRowIndex /*, thresholds */]
+  );
 
   const MemoizedTableRow = useMemo(
     () =>
@@ -260,6 +262,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [handleRowClick, getRowStyle]
   );
 
+  // Cache cell styles for performance
   const cellStyleCache = useMemo(() => new Map<string, React.CSSProperties>(), []);
   const getCachedCellStyle = useCallback(
     (baseStyle: any, index: number, isFixed: boolean = false) => {
@@ -272,12 +275,13 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [selectedRowIndex, getCellStyle, cellStyleCache]
   );
 
+  // Auto-select most recent year with data on mount if no year param and initial data is empty
   useEffect(() => {
     async function autoSelectMostRecentYearWithData() {
       if (!yearParam && teams.length === 0 && !isLoading && !hasAutoSelectedYear) {
-        const years = generateSeasonOptions().slice().reverse();
+        const years = generateSeasonOptions().slice().reverse(); // most recent first
         for (const year of years) {
-          if (year === filters.season) continue; 
+          if (year === filters.season) continue; // skip current
           setIsLoading(true);
           try {
             const data = await fetchWNBAteamStats(year);
@@ -311,7 +315,15 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     headerClassName?: string;
     cellClassName?: string;
   }[] = [
-    { key: 'rank', label: 'Rank', sortable: true, width: columnWidths.rank, style: firstColumnStyle, headerClassName: smallerCellClass, cellClassName: smallerCellClass },
+    {
+      key: 'rank',
+      label: 'Rank',
+      sortable: true,
+      width: columnWidths.rank,
+      style: firstColumnStyle,
+      headerClassName: smallerCellClass,
+      cellClassName: smallerCellClass,
+    },
     {
       key: 'teamName',
       label: 'Team',
@@ -322,10 +334,10 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
       cellClassName: nameTeamCellClass,
     },
     { key: 'gamesPlayed', label: 'GP', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
-    { key: 'winPct', label: 'Win%', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'wins', label: 'W', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'losses', label: 'L', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
-    // { key: 'minutes', label: 'MIN', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
+    { key: 'winPct', label: 'Win%', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
+    { key: 'minutes', label: 'MIN', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'points', label: 'PTS', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'fgMade', label: 'FGM', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'fgAttempted', label: 'FGA', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
@@ -350,6 +362,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-neutral-950 mr-1">
       {' '}
+      {/* Added mr-1 like players */}
       <div className="p-2 border-b border-neutral-800 flex-shrink-0">
         <div className="flex flex-wrap gap-4 items-center">
           {/* Search Input */}
@@ -409,7 +422,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
           {/* Link to Players Stats */}
           <Link
-            href={`/${league}/players?year=${filters.season}`} // Link to players, include current year
+            href={`/${league}/players?year=${filters.season}`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-neutral-300 hover:text-neutral-400 bg-neutral-900 rounded-md border border-neutral-800 hover:border-neutral-700 transition-colors ml-auto"
           >
             <User className="w-4 h-4" /> {/* Player icon */}
@@ -437,7 +450,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
             <TableVirtuoso
               style={{ height: '100%' }}
               totalCount={sortedTeams.length}
-              overscan={{ main: 50, reverse: 50 }} 
+              overscan={{ main: 50, reverse: 50 }}
               increaseViewportBy={{ top: 50, bottom: 50 }}
               components={{
                 Table: ({ style, ...props }) => (
@@ -448,7 +461,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                       width: 'max-content',
                       minWidth: '100%',
                       tableLayout: 'fixed',
-                      borderCollapse: 'separate', 
+                      borderCollapse: 'separate',
                       borderSpacing: 0,
                     }}
                     className="table-auto text-xs"
@@ -460,8 +473,14 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                       {columns.map((col) => (
                         <th
                           key={col.key}
-                          className={col.headerClassName || cellClass} // Use defined class or default
-                          style={{ ...headerStyle, ...(col.style || {}), width: col.width, opacity: isLoading ? 0.7 : 1, transition: 'opacity 0.15s ease' }}
+                          className={col.headerClassName || cellClass}
+                          style={{
+                            ...headerStyle,
+                            ...(col.style || {}),
+                            width: col.width,
+                            opacity: isLoading ? 0.7 : 1,
+                            transition: 'opacity 0.15s ease',
+                          }}
                           onClick={col.sortable ? () => handleSort(col.key as keyof WNBATeamStats | 'rank') : undefined}
                         >
                           {col.label}
@@ -471,12 +490,16 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                     </tr>
                   </thead>
                 ),
-                TableRow: MemoizedTableRow, 
+                TableRow: MemoizedTableRow,
               }}
               fixedHeaderContent={() => null}
               itemContent={(index) => {
                 const team = sortedTeams[index];
-                const rankCellStyle = getCachedCellStyle({ width: columnWidths.rank, position: 'sticky', left: 0, zIndex: 98, backgroundClip: 'padding-box' }, index, true);
+                const rankCellStyle = getCachedCellStyle(
+                  { width: columnWidths.rank, position: 'sticky', left: 0, zIndex: 98, backgroundClip: 'padding-box' },
+                  index,
+                  true
+                );
                 const teamNameCellStyle = getCachedCellStyle(
                   { width: columnWidths.teamName, position: 'sticky', left: columnWidths.rank, zIndex: 98, backgroundClip: 'padding-box' },
                   index,
@@ -493,19 +516,21 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                     <td key="teamName" className={nameTeamCellClass} style={teamNameCellStyle}>
                       <div className="flex items-center gap-2">
                         <div className="relative w-5 h-5 flex-shrink-0">
-                          <Image src={getTeamLogoUrl(team.teamAbbr || '')} alt={`${team.teamName} logo`} width={20} height={20} className="object-contain" />
+                          <Image
+                            src={getTeamLogoUrl(team.teamAbbr || '')}
+                            alt={`${team.teamName} logo`}
+                            width={20}
+                            height={20}
+                            className="object-contain"
+                          />
                         </div>
                         <Link href={`/${league}/${(team.teamAbbr || '').toLowerCase()}`} className="flex items-center gap-1 hover:opacity-80">
                           <span className="text-indigo-300 hover:text-indigo-200">{team.teamName}</span>
                         </Link>
-                        {/* Remove debug but use custom check for favorites by name */}
                         {(() => {
                           const isFavoriteById = !!favorites[team.teamId];
-                          const isFavoriteByName = Object.values(favorites).some(fav => 
-                            fav.name?.toLowerCase() === team.teamName?.toLowerCase());
-                          return (isFavoriteById || isFavoriteByName) && (
-                            <Star className="size-2.5 fill-yellow-600 text-yellow-600" />
-                          );
+                          const isFavoriteByName = Object.values(favorites).some((fav) => fav.name?.toLowerCase() === team.teamName?.toLowerCase());
+                          return (isFavoriteById || isFavoriteByName) && <Star className="size-2.5 fill-yellow-600 text-yellow-600" />;
                         })()}
                       </div>
                     </td>
@@ -513,18 +538,18 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                     <td key="gp" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                       {team.gamesPlayed}
                     </td>
-                    <td key="winPct" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
-                      {(team.winPct * 100).toFixed(1)}
-                    </td>
                     <td key="w" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                       {team.wins}
                     </td>
                     <td key="l" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                       {team.losses}
                     </td>
-                    {/* <td key="min" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
+                    <td key="winPct" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
+                      {(team.winPct * 100).toFixed(1)}
+                    </td>
+                    <td key="min" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                       {team.minutes.toFixed(1)}
-                    </td> */}
+                    </td>
                     <td key="pts" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                       {team.points.toFixed(1)}
                     </td>

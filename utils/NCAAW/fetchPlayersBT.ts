@@ -1,4 +1,4 @@
-"use server"
+'use server';
 import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
@@ -19,23 +19,37 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
 export async function fetchPlayersStatsBT(year?: number) {
   'use cache';
   cacheLife('minutes');
-  
+
   // If year is not provided, use current year
   const currentYear = new Date().getFullYear();
   const yearToUse = year || currentYear;
-  
+
   const url = `${process.env.NCAAW_fetchPlayersBT}?year=${yearToUse}&top=400&page=playerstat`;
 
   try {
     const response = await fetchWithRetry(url);
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error(`API returned non-JSON response for year ${yearToUse}:`, text.substring(0, 200));
+      throw new Error(`API returned non-JSON response. Status: ${response.status}, Content-Type: ${contentType}`);
+    }
+
     const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error(`API returned non-array data for year ${yearToUse}:`, data);
+      throw new Error('API returned non-array data');
+    }
 
     const formattedData = data.map((player: any) => formatBTData(player, yearToUse));
 
     return formattedData;
   } catch (error) {
     console.error(`Error fetching data for year ${yearToUse}:`, error);
-    throw error; // Re-throw the error after logging
+
+    return [];
   }
 }
 

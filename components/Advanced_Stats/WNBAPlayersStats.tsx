@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import React from 'react';
-import { calculateAllThresholds, getStatStyle, getTurnoverStyle, getDefensiveStyle, getPersonalFoulsStyle, statDescriptions } from '@/lib/statsColors';
+import {
+  calculateAllThresholds,
+  getStatStyle,
+  getTurnoverStyle,
+  getDefensiveStyle,
+  getPersonalFoulsStyle,
+  statDescriptions,
+} from '@/lib/statsColors';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -33,11 +40,13 @@ const getFullTeamName = (teamAbbr: string): string => {
     WSH: 'Washington Mystics',
   };
 
-  return teamMapping[teamAbbr] || teamAbbr;
+  const upperTeamAbbr = teamAbbr.toUpperCase();
+  return teamMapping[upperTeamAbbr] || teamAbbr;
 };
 
 const getTeamLogo = (teamAbbr: string): string => {
-  return getTeamLogoUrl(teamAbbr);
+  const upperTeamAbbr = teamAbbr.toUpperCase();
+  return getTeamLogoUrl(upperTeamAbbr);
 };
 
 type SortConfig = {
@@ -352,7 +361,14 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
     () =>
       React.memo(({ item: _item, ...props }: any) => {
         const index = props['data-index'] as number;
-        return <tr {...props} className="border-b bg-neutral-900 hover:bg-gray-50 text-xs" onClick={() => handleRowClick(index)} style={getRowStyle(index)} />;
+        return (
+          <tr
+            {...props}
+            className="border-b bg-neutral-900 hover:bg-gray-50 text-xs"
+            onClick={() => handleRowClick(index)}
+            style={getRowStyle(index)}
+          />
+        );
       }),
     [handleRowClick, getRowStyle]
   );
@@ -473,7 +489,9 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
             </select>
           </div>
 
-          <div className="text-sm text-neutral-500">{players.length > 0 && `Showing ${searchFilteredPlayers.length} of ${players.length} players`}</div>
+          <div className="text-sm text-neutral-500">
+            {players.length > 0 && `Showing ${searchFilteredPlayers.length} of ${players.length} players`}
+          </div>
 
           <Link
             href={`/${league}/teams`}
@@ -529,10 +547,14 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
               TableHead: () => (
                 <thead className="sticky top-0 z-[100] bg-neutral-900">
                   <tr>
-                    <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.rank }} onClick={() => handleSort('rank')}>
-                      Rank {getSortIndicator('rank')}
+                    <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.rank }}>
+                      Rank
                     </th>
-                    <th className={nameTeamCellClass} style={{ ...secondColumnStyle, width: columnWidths.playerName }} onClick={() => handleSort('playerName')}>
+                    <th
+                      className={nameTeamCellClass}
+                      style={{ ...secondColumnStyle, width: columnWidths.playerName }}
+                      onClick={() => handleSort('playerName')}
+                    >
                       Player {getSortIndicator('playerName')}
                     </th>
                     <th
@@ -549,67 +571,156 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     >
                       Team {getSortIndicator('team')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.gp }} onClick={() => handleSort('gamesPlayed')} title={statDescriptions.gamesPlayed}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.gp }}
+                      onClick={() => handleSort('gamesPlayed')}
+                      title={statDescriptions.gamesPlayed}
+                    >
                       GP {getSortIndicator('gamesPlayed')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('minutes')} title={statDescriptions.minutes}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('minutes')}
+                      title={statDescriptions.minutes}
+                    >
                       MIN {getSortIndicator('minutes')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('points')} title={statDescriptions.points}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('points')}
+                      title={statDescriptions.points}
+                    >
                       PTS {getSortIndicator('points')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('assists')} title={statDescriptions.assists}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('assists')}
+                      title={statDescriptions.assists}
+                    >
                       AST {getSortIndicator('assists')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('rebounds')} title={statDescriptions.rebounds}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('rebounds')}
+                      title={statDescriptions.rebounds}
+                    >
                       REB {getSortIndicator('rebounds')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('steals')} title={statDescriptions.steals}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('steals')}
+                      title={statDescriptions.steals}
+                    >
                       STL {getSortIndicator('steals')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('blocks')} title={statDescriptions.blocks}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('blocks')}
+                      title={statDescriptions.blocks}
+                    >
                       BLK {getSortIndicator('blocks')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('personalFoulsDrawn')} title={statDescriptions.personalFoulsDrawn}>
-                      PFD {getSortIndicator('personalFoulsDrawn')}
-                    </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('plusMinus')} title={statDescriptions.plusMinus}>
-                      +/- {getSortIndicator('plusMinus')}
-                    </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgMade')} title={statDescriptions.fgMade}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fgMade')}
+                      title={statDescriptions.fgMade}
+                    >
                       FGM {getSortIndicator('fgMade')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgAttempted')} title={statDescriptions.fgAttempted}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fgAttempted')}
+                      title={statDescriptions.fgAttempted}
+                    >
                       FGA {getSortIndicator('fgAttempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fgPercentage')} title={statDescriptions.fgPercentage}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fgPercentage')}
+                      title={statDescriptions.fgPercentage}
+                    >
                       FG% {getSortIndicator('fgPercentage')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Made')} title={statDescriptions.fg3Made}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fg3Made')}
+                      title={statDescriptions.fg3Made}
+                    >
                       3PM {getSortIndicator('fg3Made')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Attempted')} title={statDescriptions.fg3Attempted}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fg3Attempted')}
+                      title={statDescriptions.fg3Attempted}
+                    >
                       3PA {getSortIndicator('fg3Attempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('fg3Percentage')} title={statDescriptions.fg3Percentage}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('fg3Percentage')}
+                      title={statDescriptions.fg3Percentage}
+                    >
                       3P% {getSortIndicator('fg3Percentage')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftMade')} title={statDescriptions.ftMade}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('ftMade')}
+                      title={statDescriptions.ftMade}
+                    >
                       FTM {getSortIndicator('ftMade')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftAttempted')} title={statDescriptions.ftAttempted}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('ftAttempted')}
+                      title={statDescriptions.ftAttempted}
+                    >
                       FTA {getSortIndicator('ftAttempted')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('ftPercentage')} title={statDescriptions.ftPercentage}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('ftPercentage')}
+                      title={statDescriptions.ftPercentage}
+                    >
                       FT% {getSortIndicator('ftPercentage')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('offensiveRebounds')} title={statDescriptions.offensiveRebounds}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('offensiveRebounds')}
+                      title={statDescriptions.offensiveRebounds}
+                    >
                       OREB {getSortIndicator('offensiveRebounds')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('defensiveRebounds')} title={statDescriptions.defensiveRebounds}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('defensiveRebounds')}
+                      title={statDescriptions.defensiveRebounds}
+                    >
                       DREB {getSortIndicator('defensiveRebounds')}
                     </th>
-                    <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('turnovers')} title={statDescriptions.turnovers}>
+                    <th
+                      className={cellClass}
+                      style={{ ...headerStyle, width: columnWidths.basicStats }}
+                      onClick={() => handleSort('turnovers')}
+                      title={statDescriptions.turnovers}
+                    >
                       TOV {getSortIndicator('turnovers')}
                     </th>
                   </tr>
@@ -726,28 +837,6 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     {player.blocks.toFixed(1)}
                   </td>
                   <td
-                    key="personalFoulsDrawn"
-                    className={cellClass}
-                    style={{
-                      ...getCachedCellStyle(getStatStyle(player.personalFoulsDrawn, thresholds?.personalFoulsDrawn, 'personalFoulsDrawn'), index),
-                      width: columnWidths.basicStats,
-                    }}
-                    title={statDescriptions.personalFoulsDrawn}
-                  >
-                    {player.personalFoulsDrawn.toFixed(1)}
-                  </td>
-                  <td
-                    key="plusMinus"
-                    className={cellClass}
-                    style={{
-                      ...getCachedCellStyle(getStatStyle(player.plusMinus, thresholds?.plusMinus, 'plusMinus'), index),
-                      width: columnWidths.basicStats,
-                    }}
-                    title={statDescriptions.plusMinus}
-                  >
-                    {player.plusMinus.toFixed(1)}
-                  </td>
-                  <td
                     key="fgMade"
                     className={cellClass}
                     style={{
@@ -771,7 +860,10 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="fgPct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(getStatStyle(player.fgPercentage * 100, thresholds?.fgPercentage, 'fgPercentage', player.fgAttempted), index),
+                      ...getCachedCellStyle(
+                        getStatStyle(player.fgPercentage * 100, thresholds?.fgPercentage, 'fgPercentage', player.fgAttempted),
+                        index
+                      ),
                       width: columnWidths.basicStats,
                     }}
                   >
@@ -801,7 +893,10 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="fg3Pct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(getStatStyle(player.fg3Percentage * 100, thresholds?.fg3Percentage, 'fg3Percentage', player.fg3Attempted), index),
+                      ...getCachedCellStyle(
+                        getStatStyle(player.fg3Percentage * 100, thresholds?.fg3Percentage, 'fg3Percentage', player.fg3Attempted),
+                        index
+                      ),
                       width: columnWidths.basicStats,
                     }}
                   >
@@ -831,7 +926,10 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     key="ftPct"
                     className={cellClass}
                     style={{
-                      ...getCachedCellStyle(getStatStyle(player.ftPercentage * 100, thresholds?.ftPercentage, 'ftPercentage', player.ftAttempted), index),
+                      ...getCachedCellStyle(
+                        getStatStyle(player.ftPercentage * 100, thresholds?.ftPercentage, 'ftPercentage', player.ftAttempted),
+                        index
+                      ),
                       width: columnWidths.basicStats,
                     }}
                   >
