@@ -58,7 +58,7 @@ const headerStyle: React.CSSProperties = {
 
 const cellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black ';
 const nameTeamCellClass = 'px-1.5 py-1 pl-2 text-left bg-neutral-900 border-r border-b border-black ';
-const smallerCellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black'; // For Rank
+const smallerCellClass = 'px-1.5 py-1 text-center bg-neutral-900 border-r border-b border-black';
 
 const firstColumnStyle: React.CSSProperties = {
   ...headerStyle,
@@ -97,16 +97,15 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'winPct', direction: 'desc' });
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null); // For row selection
-  const [hasAutoSelectedYear, setHasAutoSelectedYear] = useState(false); // For auto-selecting year
-  const [favorites, setFavorites] = useState<Record<string, any>>({}); // Add favorites state
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [hasAutoSelectedYear, setHasAutoSelectedYear] = useState(false);
+  const [favorites, setFavorites] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const favs = getFavorites(league);
     setFavorites(favs);
   }, [league]);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((prev) => ({ ...prev, search: inputValue }));
@@ -178,7 +177,6 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
 
-    // Add rank based on the sorted order
     return sorted.map((team, index) => ({ ...team, rank: index + 1 }));
   }, [searchFilteredTeams, sortConfig]);
 
@@ -219,11 +217,10 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     );
   };
 
-  // Get row styling based on selection state
   const getRowStyle = useCallback(
     (index: number): React.CSSProperties => ({
       cursor: 'pointer',
-      backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717', // Highlight color vs default
+      backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
       borderLeft: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
       borderRight: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
       borderTop: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
@@ -232,12 +229,11 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [selectedRowIndex]
   );
 
-  // Get cell styling (adjusts background for selected row, especially for sticky columns)
   const getCellStyle = useCallback(
     (baseStyle: any, index: number, isFixed: boolean = false): React.CSSProperties => {
       const selected = selectedRowIndex === index;
       const backgroundColor = selected ? '#1a1835' : baseStyle.backgroundColor || '#171717';
-      const color = baseStyle.color || 'white'; // Default text color
+      const color = baseStyle.color || 'white';
 
       if (isFixed) {
         return {
@@ -250,7 +246,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
       return { ...baseStyle, backgroundColor, color, boxShadow: 'none' };
     },
-    [selectedRowIndex /*, thresholds */]
+    [selectedRowIndex]
   );
 
   const MemoizedTableRow = useMemo(
@@ -262,7 +258,6 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [handleRowClick, getRowStyle]
   );
 
-  // Cache cell styles for performance
   const cellStyleCache = useMemo(() => new Map<string, React.CSSProperties>(), []);
   const getCachedCellStyle = useCallback(
     (baseStyle: any, index: number, isFixed: boolean = false) => {
@@ -275,13 +270,12 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     [selectedRowIndex, getCellStyle, cellStyleCache]
   );
 
-  // Auto-select most recent year with data on mount if no year param and initial data is empty
   useEffect(() => {
     async function autoSelectMostRecentYearWithData() {
       if (!yearParam && teams.length === 0 && !isLoading && !hasAutoSelectedYear) {
-        const years = generateSeasonOptions().slice().reverse(); // most recent first
+        const years = generateSeasonOptions().slice().reverse();
         for (const year of years) {
-          if (year === filters.season) continue; // skip current
+          if (year === filters.season) continue;
           setIsLoading(true);
           try {
             const data = await fetchWNBAteamStats(year);
@@ -303,8 +297,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
       }
     }
     autoSelectMostRecentYearWithData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teams.length, isLoading, filters.season, hasAutoSelectedYear, yearParam, router, pathname, searchParams]); // Dependencies
+  }, [teams.length, isLoading, filters.season, hasAutoSelectedYear, yearParam, router, pathname, searchParams]);
 
   const columns: {
     key: keyof WNBATeamStats | 'rank';
@@ -337,6 +330,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     { key: 'wins', label: 'W', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'losses', label: 'L', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'winPct', label: 'Win%', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
+    { key: 'gb', label: 'GB', sortable: true, width: columnWidths.basicStats, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'minutes', label: 'MIN', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'points', label: 'PTS', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'fgMade', label: 'FGM', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
@@ -362,29 +356,26 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-neutral-950 mr-1">
       {' '}
-      {/* Added mr-1 like players */}
       <div className="p-2 border-b border-neutral-800 flex-shrink-0">
         <div className="flex flex-wrap gap-4 items-center">
-          {/* Search Input */}
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={inputValue}
-              onChange={handleSearchChange} // Use immediate update handler
+              onChange={handleSearchChange}
               placeholder="Search team..."
               className="w-full pl-4 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600"
               disabled={isLoading || !teams.length}
             />
           </div>
 
-          {/* Season Selector */}
           <div className="flex items-center gap-2">
             <label className="text-sm">Season:</label>
             <div className="relative">
               <select
-                value={filters.season} // Use filters.season
+                value={filters.season}
                 onChange={(e) => handleYearChange(Number(e.target.value))}
-                className="pl-4 cursor-pointer pr-8 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600 appearance-none bg-[length:16px_16px] bg-[right_0.5rem_center] bg-no-repeat bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNy40MSA4LjU5TDEyIDEzLjE3bDQuNTktNC41OEwxOCAxMGwtNiA2LTYtNiAxLjQxLTEuNDF6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==')]" // Style like players
+                className="pl-4 cursor-pointer pr-8 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-md focus:outline-hidden focus:border-neutral-400 dark:focus:border-neutral-600 appearance-none bg-[length:16px_16px] bg-[right_0.5rem_center] bg-no-repeat bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNy40MSA4LjU5TDEyIDEzLjE3bDQuNTktNC41OEwxOCAxMGwtNiA2LTYtNiAxLjQxLTEuNDF6IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==')]"
                 disabled={isLoading}
               >
                 {generateSeasonOptions().map((year) => (
@@ -401,7 +392,6 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
             </div>
           </div>
 
-          {/* Season Type Selector - only show when there's data */}
           {teams.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="text-sm">Season Type:</label>
@@ -417,20 +407,17 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
             </div>
           )}
 
-          {/* Team Count */}
           <div className="text-sm text-neutral-500">{teams.length > 0 && `Showing ${searchFilteredTeams.length} of ${teams.length} teams`}</div>
 
-          {/* Link to Players Stats */}
           <Link
             href={`/${league}/players?year=${filters.season}`}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-neutral-300 hover:text-neutral-400 bg-neutral-900 rounded-md border border-neutral-800 hover:border-neutral-700 transition-colors ml-auto"
           >
-            <User className="w-4 h-4" /> {/* Player icon */}
+            <User className="w-4 h-4" />
             View Players Stats
           </Link>
         </div>
       </div>
-      {/* Table Area */}
       <div className="flex-1 relative">
         {isLoading && (
           <div className="absolute inset-0 bg-neutral-950/50 z-50 flex items-center justify-center">
@@ -508,11 +495,9 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
                 return (
                   <>
-                    {/* Rank */}
                     <td key="rank" className={smallerCellClass} style={rankCellStyle}>
                       {team.rank}
                     </td>
-                    {/* Team Name with Logo */}
                     <td key="teamName" className={nameTeamCellClass} style={teamNameCellStyle}>
                       <div className="flex items-center gap-2">
                         <div className="relative w-5 h-5 flex-shrink-0">
@@ -534,7 +519,6 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                         })()}
                       </div>
                     </td>
-                    {/* Other Stats */}
                     <td key="gp" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                       {team.gamesPlayed}
                     </td>
@@ -546,6 +530,9 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                     </td>
                     <td key="winPct" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                       {(team.winPct * 100).toFixed(1)}
+                    </td>
+                    <td key="gb" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
+                      {(team.gb ?? 0).toFixed(1)}
                     </td>
                     <td key="min" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                       {team.minutes.toFixed(1)}

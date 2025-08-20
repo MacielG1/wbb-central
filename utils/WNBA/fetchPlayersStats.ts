@@ -9,7 +9,7 @@ async function fetchWithRetry(url: string, maxRetries = 3, timeoutMs = 10000): P
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'same-origin',
-    Referer: 'https://www.rotowire.com/wnba/stats.php',
+    Referer: `${process.env.WNBA_fetchPlayersStats}`,
   };
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -78,7 +78,7 @@ export async function fetchWNBAPlayerStats(season: number = new Date().getFullYe
   'use cache';
   unstable_cacheLife('minutes');
 
-  const url = `https://www.rotowire.com/wnba/tables/stats.php?statType=pergame&season=${season}`;
+  const url = `${process.env.WNBA_fetchPlayersStats}wnba/tables/stats.php?statType=pergame&season=${season}`;
 
   try {
     const response = await fetchWithRetry(url);

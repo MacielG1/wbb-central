@@ -35,9 +35,15 @@ interface TeamStats {
 }
 
 async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
+  const headers: HeadersInit = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
+    Accept: 'application/json,text/plain,*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    ...(options.headers as Record<string, string>),
+  };
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, headers });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response;
     } catch (error) {
@@ -99,25 +105,33 @@ export async function fetchTeamsStatsBT(year?: number, seasonType: string = 'Reg
       next: { revalidate: 60 },
     });
 
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
       const text = await response.text();
-      console.error(`API returned non-JSON response for year ${yearToUse}:`, text.substring(0, 200));
-      throw new Error(`API returned non-JSON response. Status: ${response.status}, Content-Type: ${contentType}`);
+      console.warn(
+        `[fetchTeamsStatsBT] Non-JSON response for year ${yearToUse}. Status ${response.status}. First 200 chars: ${text.substring(0, 200)}`
+      );
+      return [];
     }
 
-    const data = await response.json();
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.warn(`[fetchTeamsStatsBT] Failed to parse JSON for year ${yearToUse}.`, e);
+      return [];
+    }
 
     if (!Array.isArray(data)) {
-      console.error(`API returned non-array data for year ${yearToUse}:`, data);
-      throw new Error('API returned non-array data');
+      console.warn(`API returned non-array data for year ${yearToUse}:`, data);
+      return [];
     }
 
     const formattedData = data.map((team: any) => formatBTTeamData(team, yearToUse));
 
     return formattedData;
   } catch (error) {
-    console.error(`Error fetching team data for year ${yearToUse}:`, error);
+    console.warn(`Error fetching team data for year ${yearToUse}:`, error);
 
     return [];
   }
