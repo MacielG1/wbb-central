@@ -1,5 +1,5 @@
 'use server';
-import { unstable_cacheLife } from 'next/cache';
+import { unstable_cacheLife as cacheLife } from 'next/cache';
 
 interface TeamStats {
   team: string;
@@ -34,16 +34,26 @@ interface TeamStats {
   season: number;
 }
 
-async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> {
-  const headers: HeadersInit = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0',
-    Accept: 'application/json,text/plain,*/*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    ...(options.headers as Record<string, string>),
+async function fetchWithVerification(url: string): Promise<Response> {
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0',
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    Connection: 'keep-alive',
+    Cookie: 'js_verified=true',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
   };
+
+  return await fetch(url, { headers });
+}
+
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetchWithVerification(url);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response;
     } catch (error) {
@@ -92,46 +102,38 @@ function formatBTTeamData(team: any[], year: number): TeamStats {
 
 export async function fetchTeamsStatsBT(year?: number, seasonType: string = 'Regular Season') {
   'use cache';
-  unstable_cacheLife('minutes');
+  cacheLife('minutes');
 
-  // If year is not provided, use current year
-  const currentYear = new Date().getFullYear();
-  const yearToUse = year || currentYear;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const defaultStartYear = m >= 10 ? y : y - 1;
+  const startYear = year ?? defaultStartYear;
+  const apiYear = startYear + 1;
 
-  const url = `${process.env.NCAAW_fetchTeamsBT}?year=${yearToUse}&json=1`;
+  const url = `${process.env.NCAAW_fetchTeamsBT}?year=${apiYear}&json=1`;
 
   try {
-    const response = await fetchWithRetry(url, {
-      next: { revalidate: 60 },
-    });
-
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      const text = await response.text();
-      console.warn(
-        `[fetchTeamsStatsBT] Non-JSON response for year ${yearToUse}. Status ${response.status}. First 200 chars: ${text.substring(0, 200)}`
-      );
-      return [];
-    }
+    const response = await fetchWithRetry(url);
 
     let data: unknown;
     try {
       data = await response.json();
     } catch (e) {
-      console.warn(`[fetchTeamsStatsBT] Failed to parse JSON for year ${yearToUse}.`, e);
+      console.warn(`[fetchTeamsStatsBT] Failed to parse JSON for start-year ${startYear}.`, e);
       return [];
     }
 
     if (!Array.isArray(data)) {
-      console.warn(`API returned non-array data for year ${yearToUse}:`, data);
+      console.warn(`API returned non-array data for start-year ${startYear}:`, data);
       return [];
     }
 
-    const formattedData = data.map((team: any) => formatBTTeamData(team, yearToUse));
+    const formattedData = data.map((team: any) => formatBTTeamData(team, startYear));
 
     return formattedData;
   } catch (error) {
-    console.warn(`Error fetching team data for year ${yearToUse}:`, error);
+    console.warn(`Error fetching team data for start-year ${startYear}:`, error);
 
     return [];
   }

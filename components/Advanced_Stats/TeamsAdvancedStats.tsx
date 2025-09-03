@@ -96,9 +96,7 @@ const getCurrentSeason = (): number => {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
   
-  // If we're in the latter part of the year (July-December), we're in the season that starts this year
-  // Otherwise, we're in the season that started the previous year
-  return currentMonth >= 6 ? currentYear : currentYear - 1;
+  return currentMonth >= 10 ? currentYear : currentYear - 1;
 };
 
 const generateSeasonOptions = () => {
@@ -182,7 +180,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
   const fetchAndMapConferences = async (year: number) => {
     try {
       const cachedData = getCachedConferenceData();
-      if (cachedData && isConferenceCacheValid(cachedData) && cachedData.season === year + 1) {
+      if (cachedData && isConferenceCacheValid(cachedData) && cachedData.season === year) {
         const teamsWithConference = teams.map(team => ({
           ...team,
           conference: cachedData.conferenceMap[team.team.toLowerCase()] || 'Unknown'
@@ -194,7 +192,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
         return;
       }
 
-      const playerData = await fetchPlayersStatsBT(year + 1);
+      const playerData = await fetchPlayersStatsBT(year);
       
       const conferenceMap: Record<string, string> = {};
       playerData.forEach((player: any) => {
@@ -203,7 +201,7 @@ export default function TeamsAdvancedStats({ initialData }: TeamsAdvancedStatsPr
         }
       });
 
-      setCachedConferenceData(conferenceMap, year + 1);
+      setCachedConferenceData(conferenceMap, year);
 
       const teamsWithConference = teams.map(team => ({
         ...team,

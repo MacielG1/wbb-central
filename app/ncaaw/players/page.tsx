@@ -18,9 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PlayersPage() {
-  const currentYear = new Date().getFullYear();
-
-  const data = await fetchPlayersStatsBT(currentYear);
+  const data = await fetchPlayersStatsBT();
   if (!data) {
     return <div>Error loading data</div>;
   }
