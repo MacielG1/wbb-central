@@ -1,6 +1,6 @@
 'use server';
 import * as cheerio from 'cheerio';
-import { unstable_cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 export interface WNBATeamStats {
   teamId: string;
@@ -81,12 +81,16 @@ export async function fetchWNBAteamStats(
   _seasonType: string = 'Regular Season'
 ): Promise<WNBATeamStats[]> {
   'use cache';
-  unstable_cacheLife('minutes');
+  cacheLife('minutes');
   try {
-    const url = `${process.env.WNBA_fetchTeamStats}${season}.html`;
+    let url = `${process.env.WNBA_fetchTeamRegularSeasonStats}${season}.html`;
+    if (_seasonType.toLocaleLowerCase().includes('playoff')) {
+      url = `${process.env.WNBA_fetchTeamPlayoffStats}${season}.html`;
+    }
     const res = await fetch(url, { headers: { Accept: 'text/html' } });
     if (!res.ok) throw new Error(`Failed to load Basketball-Reference page: ${res.status}`);
     const html = await res.text();
+
     const $ = cheerio.load(html);
 
     const teamTable = getTable($, 'per_game-team');

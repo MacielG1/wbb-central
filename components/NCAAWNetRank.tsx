@@ -37,7 +37,9 @@ function findTeamData(rankingName: string) {
   const rankingNameLower = rankingName.toLowerCase();
 
   if (specialCases[rankingNameLower]) {
-    return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCases[rankingNameLower] || t.nickname.toLowerCase() === specialCases[rankingNameLower]);
+    return allTeamsData.find(
+      (t) => t.displayName.toLowerCase() === specialCases[rankingNameLower] || t.nickname.toLowerCase() === specialCases[rankingNameLower]
+    );
   }
   const nicknameMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === rankingNameLower);
   if (nicknameMatch) return nicknameMatch;
@@ -51,7 +53,9 @@ function findTeamData(rankingName: string) {
     const nicknameParts = t.nickname.toLowerCase().split(' ');
 
     return nameParts.every(
-      (part) => displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) || nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
+      (part) =>
+        displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) ||
+        nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
     );
   });
 }
@@ -68,6 +72,10 @@ export default function NCAAWNetRank({ rankings, lastUpdated }: NCAAWNetRankProp
     setFavorites(getFavorites());
   }, []);
 
+  if (!rankings || rankings.length === 0) {
+    return null;
+  }
+
   return (
     <div className="rankings-section col-span-4">
       {lastUpdated && (
@@ -82,7 +90,9 @@ export default function NCAAWNetRank({ rankings, lastUpdated }: NCAAWNetRankProp
         return (
           <div
             key={team.name + team.rank}
-            className={`px-2.5 grid grid-cols-[auto_1fr_auto] gap-2 items-center w-full py-1 [&+&]:border-t [&+&]:border-neutral-700 ${isFavorite ? 'bg-favorite/10' : ''}`}
+            className={`px-2.5 grid grid-cols-[auto_1fr_auto] gap-2 items-center w-full py-1 [&+&]:border-t [&+&]:border-neutral-700 ${
+              isFavorite ? 'bg-favorite/10' : ''
+            }`}
           >
             <div className="text-white min-w-4 text-xs">{team.rank}.</div>
 

@@ -11,9 +11,10 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 type RankingsDisplayProps = {
   rankings: any[];
   netRank: React.ReactNode;
+  hasNetRankings?: boolean;
 };
 
-export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayProps) {
+export default function RankingsDisplay({ rankings, netRank, hasNetRankings = false }: RankingsDisplayProps) {
   const [currentPollIndex, setCurrentPollIndex] = useState(0);
   const [showNetRank, setShowNetRank] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, any>>({});
@@ -35,7 +36,7 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
   function handleNext() {
     if (currentPollIndex < rankings.length - 1) {
       setCurrentPollIndex((prev) => prev + 1);
-    } else if (!showNetRank) {
+    } else if (!showNetRank && hasNetRankings) {
       setShowNetRank(true);
     }
   }
@@ -65,7 +66,7 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
               {showNetRank ? 'NET Rankings' : currentPoll?.name || 'National Rankings'}
             </div>
             <div className="w-[24px]">
-              {(currentPollIndex < rankings.length - 1 || !showNetRank) && (
+              {(currentPollIndex < rankings.length - 1 || (!showNetRank && hasNetRankings)) && (
                 <button onClick={handleNext} className="text-white opacity-60 hover:opacity-100 p-0.5 cursor-pointer">
                   <ChevronRight size={16} />
                 </button>

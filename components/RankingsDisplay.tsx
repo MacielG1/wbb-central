@@ -11,9 +11,10 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 type RankingsDisplayProps = {
   rankings: any[];
   netRank: React.ReactNode;
+  hasNetRankings?: boolean;
 };
 
-export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayProps) {
+export default function RankingsDisplay({ rankings, netRank, hasNetRankings = false }: RankingsDisplayProps) {
   const [currentPollIndex, setCurrentPollIndex] = useState(0);
   const [showNetRank, setShowNetRank] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, any>>({});
@@ -35,7 +36,7 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
   function handleNext() {
     if (currentPollIndex < rankings.length - 1) {
       setCurrentPollIndex((prev) => prev + 1);
-    } else if (!showNetRank) {
+    } else if (!showNetRank && hasNetRankings) {
       setShowNetRank(true);
     }
   }
@@ -65,7 +66,7 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
               {showNetRank ? 'NET Rankings' : currentPoll?.name || 'National Rankings'}
             </div>
             <div className="w-[24px]">
-              {(currentPollIndex < rankings.length - 1 || !showNetRank) && (
+              {(currentPollIndex < rankings.length - 1 || (!showNetRank && hasNetRankings)) && (
                 <button onClick={handleNext} className="text-white opacity-60 hover:opacity-100 p-0.5 cursor-pointer">
                   <ChevronRight size={16} />
                 </button>
@@ -75,11 +76,7 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
           <div className="relative px-2.5">
             <div className="text-center lg:text-left xl:text-center">
               {!formattedDate && !showNetRank && <span className="text-xs font-normal text-neutral-500 invisible">Updated Daily</span>}
-              {!showNetRank && formattedDate && (
-                <span className="text-xs font-normal text-neutral-500">
-                  Updated {formattedDate}
-                </span>
-              )}
+              {!showNetRank && formattedDate && <span className="text-xs font-normal text-neutral-500">Updated {formattedDate}</span>}
             </div>
             <div className="absolute right-2.5 top-0 flex gap-2">
               <div className="text-white opacity-60 text-xs text-right">W/L</div>
@@ -112,7 +109,9 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
                     <div className="text-white min-w-4 text-xs">{team.current}.</div>
 
                     <Link href={`/ncaaw/${team.team.id}`} className="flex items-center gap-1">
-                      {team.team.logos?.[logoIndex]?.href && <Image src={team.team.logos[logoIndex].href} alt={``} width={20} height={20} className="w-5 h-5" unoptimized />}
+                      {team.team.logos?.[logoIndex]?.href && (
+                        <Image src={team.team.logos[logoIndex].href} alt={``} width={20} height={20} className="w-5 h-5" unoptimized />
+                      )}
                       <span className="text-indigo-300 hover:text-indigo-200 cursor-pointer text-xs">{team.team.nickname || team.team.name}</span>
                     </Link>
 
@@ -139,7 +138,9 @@ export default function RankingsDisplay({ rankings, netRank }: RankingsDisplayPr
                         ${isFavorite ? 'bg-favorite/10' : ''}`}
                     >
                       <div className="flex items-center gap-1">
-                        {team.team.logos?.[0]?.href && <Image src={team.team.logos[logoIndex].href} alt={``} width={16} height={16} className="w-4 h-4" unoptimized />}
+                        {team.team.logos?.[0]?.href && (
+                          <Image src={team.team.logos[logoIndex].href} alt={``} width={16} height={16} className="w-4 h-4" unoptimized />
+                        )}
                         <Link href={`/ncaaw/${team.team.id}`}>
                           <span className="text-indigo-300 hover:text-indigo-200 cursor-pointer text-xs">{team.team.nickname || team.team.name}</span>
                         </Link>

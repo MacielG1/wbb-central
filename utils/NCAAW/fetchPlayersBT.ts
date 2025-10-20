@@ -1,5 +1,5 @@
 'use server';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 async function fetchWithVerification(url: string): Promise<Response> {
   const headers = {
@@ -39,7 +39,7 @@ export async function fetchPlayersStatsBT(year?: number) {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
-  const defaultStartYear = m >= 10 ? y : y - 1;
+  const defaultStartYear = m >= 9 ? y : y - 1;
   const startYear = year ?? defaultStartYear;
   const apiYear = startYear + 1;
 

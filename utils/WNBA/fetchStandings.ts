@@ -1,4 +1,4 @@
-import { unstable_cacheLife } from "next/cache";
+import { cacheLife } from 'next/cache';
 
 interface WNBATeamStanding {
   id: string;
@@ -12,10 +12,9 @@ interface WNBATeamStanding {
 
 export async function fetchWNBAStandings(): Promise<WNBATeamStanding[]> {
   'use cache';
-  unstable_cacheLife('minutes');
+  cacheLife('minutes');
   const currentYear = new Date().getFullYear();
 
-  
   const response = await fetch(
     `https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?region=us&lang=en&contentorigin=espn&type=0&level=1&sort=winpercent:desc&season=${currentYear}&startingseason=2007`
   );

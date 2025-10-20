@@ -69,6 +69,11 @@ export default function NCAAWNetRank({ rankings, lastUpdated }: NCAAWNetRankProp
     setFavorites(getFavorites());
   }, []);
 
+  // Don't render anything if there are no rankings
+  if (!rankings || rankings.length === 0) {
+    return null;
+  }
+
   return (
     <div className="rankings-section col-span-4">
       {lastUpdated && (

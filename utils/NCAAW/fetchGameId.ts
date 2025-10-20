@@ -1,13 +1,11 @@
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 export default async function fetchGameId(gameId: string) {
   'use cache';
   cacheLife('seconds');
 
   async function attemptFetch() {
-    const res = await fetch(
-      `${process.env.NCAAW_fetchGameId}?event=${gameId}&enable=stats,rankings,odds,linescores,logos,boxscore,plays,leaders`
-    );
+    const res = await fetch(`${process.env.NCAAW_fetchGameId}?event=${gameId}&enable=stats,rankings,odds,linescores,logos,boxscore,plays,leaders`);
     if (!res.ok) {
       throw new Error(`Failed to fetch team schedule: ${res.statusText}`);
     }

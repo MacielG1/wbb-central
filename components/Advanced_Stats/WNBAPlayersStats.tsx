@@ -521,14 +521,9 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
           <TableVirtuoso
             style={{ height: '100%' }}
             totalCount={sortedPlayers.length}
-            overscan={{
-              main: 50,
-              reverse: 50,
-            }}
-            increaseViewportBy={{
-              top: 50,
-              bottom: 50,
-            }}
+            overscan={800}
+            increaseViewportBy={{ top: 400, bottom: 400 }}
+            defaultItemHeight={33}
             components={{
               Table: ({ style, ...props }) => (
                 <table
@@ -547,12 +542,12 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
               TableHead: () => (
                 <thead className="sticky top-0 z-[100] bg-neutral-900">
                   <tr>
-                    <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.rank }}>
+                    <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.rank, minWidth: columnWidths.rank, maxWidth: columnWidths.rank }}>
                       Rank
                     </th>
                     <th
                       className={nameTeamCellClass}
-                      style={{ ...secondColumnStyle, width: columnWidths.playerName }}
+                      style={{ ...secondColumnStyle, width: columnWidths.playerName, minWidth: columnWidths.playerName, maxWidth: columnWidths.playerName }}
                       onClick={() => handleSort('playerName')}
                     >
                       Player {getSortIndicator('playerName')}
@@ -562,6 +557,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                       style={{
                         ...headerStyle,
                         width: columnWidths.team,
+                        minWidth: columnWidths.team,
+                        maxWidth: columnWidths.team,
                         position: 'sticky',
                         left: columnWidths.rank + columnWidths.playerName,
                         zIndex: 98,
@@ -739,6 +736,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     style={{
                       ...getCachedCellStyle({}, index, true),
                       width: columnWidths.rank,
+                      minWidth: columnWidths.rank,
+                      maxWidth: columnWidths.rank,
                       position: 'sticky',
                       left: 0,
                       zIndex: 98,
@@ -753,6 +752,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     style={{
                       ...getCachedCellStyle({}, index, true),
                       width: columnWidths.playerName,
+                      minWidth: columnWidths.playerName,
+                      maxWidth: columnWidths.playerName,
                       position: 'sticky',
                       left: columnWidths.rank,
                       zIndex: 98,
@@ -767,6 +768,8 @@ export default function WNBAPlayersStats({ initialData }: WNBAPlayersStatsProps)
                     style={{
                       ...getCachedCellStyle({}, index, true),
                       width: columnWidths.team,
+                      minWidth: columnWidths.team,
+                      maxWidth: columnWidths.team,
                       position: 'sticky',
                       left: columnWidths.rank + columnWidths.playerName,
                       zIndex: 98,

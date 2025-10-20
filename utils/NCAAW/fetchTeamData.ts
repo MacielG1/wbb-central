@@ -1,6 +1,5 @@
-
-"use server"
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+'use server';
+import { cacheLife } from 'next/cache';
 
 export default async function fetchTeamData(teamId: string) {
   'use cache';

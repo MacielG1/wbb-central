@@ -1,5 +1,5 @@
 'use server';
-import { unstable_cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 async function fetchWithRetry(url: string, maxRetries = 3, timeoutMs = 10000): Promise<Response> {
   const headers = {
@@ -76,7 +76,7 @@ export interface WNBAPlayerStats {
 
 export async function fetchWNBAPlayerStats(season: number = new Date().getFullYear()): Promise<WNBAPlayerStats[]> {
   'use cache';
-  unstable_cacheLife('minutes');
+  cacheLife('minutes');
 
   const url = `${process.env.WNBA_fetchPlayersStats}wnba/tables/stats.php?statType=pergame&season=${season}`;
 

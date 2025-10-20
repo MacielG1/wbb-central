@@ -4,15 +4,7 @@ import { Metadata } from 'next';
 
 type paramsType = Promise<{ gameId: string; league: string }>;
 
-interface Competitor {
-  homeAway: string;
-  team: {
-    name: string;
-  };
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-
   return {
     title: `Game Details - NCAAW Basketball`,
     description: `Live basketball game stats and scores for NCAAW games.`,

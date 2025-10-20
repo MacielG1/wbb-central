@@ -12,6 +12,7 @@ export default async function NationalRankings() {
     <RankingsDisplay
       rankings={nationalRankings.rankings}
       netRank={<NCAAWNetRank rankings={netRankings} lastUpdated={lastUpdated} />}
+      hasNetRankings={netRankings && netRankings.length > 0}
     />
   );
 }

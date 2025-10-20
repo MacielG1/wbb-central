@@ -1,6 +1,6 @@
 // import data from './fetchTeamSchedule.json';
 
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 export default async function fetchTeamSchedule(teamId: string) {
   'use cache';

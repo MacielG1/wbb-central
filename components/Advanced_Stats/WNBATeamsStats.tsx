@@ -67,6 +67,8 @@ const firstColumnStyle: React.CSSProperties = {
   zIndex: 101,
   backgroundColor: '#4f39f6',
   backgroundClip: 'padding-box',
+  minWidth: columnWidths.rank,
+  maxWidth: columnWidths.rank,
 };
 
 const secondColumnStyle: React.CSSProperties = {
@@ -76,6 +78,8 @@ const secondColumnStyle: React.CSSProperties = {
   zIndex: 101,
   backgroundColor: '#4f39f6',
   backgroundClip: 'padding-box',
+  minWidth: columnWidths.teamName,
+  maxWidth: columnWidths.teamName,
 };
 
 export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
@@ -437,8 +441,9 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
             <TableVirtuoso
               style={{ height: '100%' }}
               totalCount={sortedTeams.length}
-              overscan={{ main: 50, reverse: 50 }}
-              increaseViewportBy={{ top: 50, bottom: 50 }}
+              overscan={800}
+              increaseViewportBy={{ top: 400, bottom: 400 }}
+              defaultItemHeight={33}
               components={{
                 Table: ({ style, ...props }) => (
                   <table

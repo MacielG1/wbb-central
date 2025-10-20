@@ -12,7 +12,6 @@ import Image from 'next/image';
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 
-
 export type paramsType = Promise<{ teamId: string; league: string }>;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,7 +54,9 @@ export default async function TeamPage(props: { params: paramsType }) {
               <FavoriteTeamButton teamId={teamId} teamName={teamData.team.displayName} league={league} />
             </div>
             <div className="w-full flex items-center justify-between gap-2 py-1">
-              <h3 className="text-neutral-800 dark:text-neutral-300">{`${teamData.team.recordSummary} • ${teamData.team.standingSummary}`}</h3>
+              <h3 className="text-neutral-800 dark:text-neutral-300">
+                {teamData.team.recordSummary && teamData.team.standingSummary && `${teamData.team.recordSummary} • ${teamData.team.standingSummary}`}
+              </h3>
               <TeamSelector allTeams={teamsIds} teamId={teamId} league={league} />
             </div>
           </div>
@@ -70,7 +71,12 @@ export default async function TeamPage(props: { params: paramsType }) {
 
       <section className="w-full mx-auto p-2 md:p-3 xl:p-2 2xl:p-6 2xl:pt-1 border-r border-neutral-200 dark:border-neutral-800">
         <Suspense fallback={null}>
-          <ConferenceStandings currentTeam={teamId} conference={conferenceData?.name || ''} standings={conferenceData?.standings?.entries || []} league={league} />
+          <ConferenceStandings
+            currentTeam={teamId}
+            conference={conferenceData?.name || ''}
+            standings={conferenceData?.standings?.entries || []}
+            league={league}
+          />
         </Suspense>
       </section>
 

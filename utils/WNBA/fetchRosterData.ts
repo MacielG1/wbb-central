@@ -1,4 +1,4 @@
-import { unstable_cacheLife as usecache } from "next/cache";
+import { cacheLife as usecache } from 'next/cache';
 
 interface WNBAPlayer {
   id: string;
@@ -57,9 +57,7 @@ export default async function fetchWNBARosterData(teamId: string): Promise<WNBAR
   'use cache';
   usecache('minutes');
   try {
-    const response = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/athletes/statistics`
-    );
+    const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/${teamId}/athletes/statistics`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch WNBA roster data: ${response.status}`);

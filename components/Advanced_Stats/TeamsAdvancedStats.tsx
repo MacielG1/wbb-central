@@ -96,7 +96,7 @@ const getCurrentSeason = (): number => {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
   
-  return currentMonth >= 10 ? currentYear : currentYear - 1;
+  return currentMonth >= 9 ? currentYear : currentYear - 1;
 };
 
 const generateSeasonOptions = () => {

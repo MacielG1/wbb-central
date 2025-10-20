@@ -9,9 +9,10 @@ import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import getFavorites from '@/lib/getFavorites';
 
 const formatTeamName = (name: string) => {
+  console.log(name);
   return name
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };
 
@@ -45,7 +46,10 @@ export default function TeamSelector({
     return [...favoriteTeams, ...nonFavoriteTeams];
   }, [allTeams, favorites, league]);
 
-  const filteredTeams = useMemo(() => sortedTeams.filter((team) => team.displayName.toLowerCase().includes(searchQuery.toLowerCase())), [sortedTeams, searchQuery]);
+  const filteredTeams = useMemo(
+    () => sortedTeams.filter((team) => team.displayName.toLowerCase().includes(searchQuery.toLowerCase())),
+    [sortedTeams, searchQuery]
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -80,7 +84,7 @@ export default function TeamSelector({
           maxWidth
         )}
       >
-        <span className="mb-0.5">{selectedTeam ? formatTeamName(selectedTeam.displayName) : 'Select a team'}</span>
+        <span className="mb-0.5">{selectedTeam ? selectedTeam.displayName : 'Select a team'}</span>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-neutral-700 dark:text-neutral-300">
           <ChevronDown className="size-4" />
         </div>
@@ -118,8 +122,10 @@ export default function TeamSelector({
                   team.id === teamId && 'bg-neutral-100 dark:bg-neutral-900'
                 )}
               >
-                {team.logos?.[logoIndex]?.href && <Image src={team.logos[logoIndex].href} alt={''} width={24} height={24} className="mr-2 size-6" unoptimized />}
-                <span className="text-sm">{formatTeamName(team.displayName)}</span>
+                {team.logos?.[logoIndex]?.href && (
+                  <Image src={team.logos[logoIndex].href} alt={''} width={24} height={24} className="mr-2 size-6" unoptimized />
+                )}
+                <span className="text-sm">{team.displayName}</span>
               </button>
             );
           })}

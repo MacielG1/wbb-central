@@ -1,5 +1,5 @@
 // import { revalidateTag } from 'next/cache';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 export default async function fetchNationalRankings() {
   'use cache';

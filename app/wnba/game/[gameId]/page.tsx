@@ -1,4 +1,3 @@
-import GameStats from '@/components/GameStats';
 import WNBAGameStats from '@/components/WNBAGameStats';
 import fetchWNBAGameId from '@/utils/WNBA/fetchGameId';
 import { Metadata } from 'next';
@@ -6,7 +5,6 @@ import { Metadata } from 'next';
 type paramsType = Promise<{ gameId: string; league: string }>;
 
 export async function generateMetadata(): Promise<Metadata> {
-
   return {
     title: `Game Details - WNBA Basketball`,
     description: `Live basketball game stats and scores for WNBA games.`,

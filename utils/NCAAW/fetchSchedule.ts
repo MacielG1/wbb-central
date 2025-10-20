@@ -1,4 +1,4 @@
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 const ncaawConfig = {
   endpoint: 'womens-college-basketball',
@@ -41,7 +41,9 @@ export default async function fetchSchedule(date?: string) {
     apiDate = today;
   }
 
-  const params = new URLSearchParams(Object.fromEntries(Object.entries(ncaawConfig.params).filter(([_, v]) => v !== undefined)) as Record<string, string>);
+  const params = new URLSearchParams(
+    Object.fromEntries(Object.entries(ncaawConfig.params).filter(([_, v]) => v !== undefined)) as Record<string, string>
+  );
   if (date) {
     params.append('dates', apiDate);
   }
@@ -64,4 +66,4 @@ export default async function fetchSchedule(date?: string) {
   } catch (error) {
     return await attemptFetch(true);
   }
-} 
+}

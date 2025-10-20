@@ -20,9 +20,10 @@ type Props = {
 }
 
 export default async function WNBAPlayerStatsPage({ searchParams }: Props) {
+  const params = await searchParams;
   const currentYear = new Date().getFullYear();
   
-  const yearParam = (await searchParams).year;
+  const yearParam = params.year;
   const requestedYear = yearParam ? parseInt(yearParam as string, 10) : currentYear;
   
   const data = await fetchWNBAPlayerStats(requestedYear);

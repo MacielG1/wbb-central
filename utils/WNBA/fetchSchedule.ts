@@ -1,4 +1,4 @@
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 import type { APIResponse } from '@/types/espn';
 
 export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
@@ -14,7 +14,7 @@ export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
 
   const d = new Date();
   const currentYear = d.getFullYear();
-  
+
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     year: 'numeric',
@@ -28,10 +28,10 @@ export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
 
   const today = `${parts[0].value}-${parts[2].value}-${parts[4].value}`;
   const apiDate = date ? date.replace(/-/g, '') : today;
-  
+
   const seasonStartDate = new Date(`${currentYear}-05-01`); // if accessing before this date, use year only
   const requestedDate = date ? new Date(date) : new Date();
-  
+
   let url: string;
   if (requestedDate < seasonStartDate) {
     // If requested date is before season start, don't include dates parameter
@@ -49,7 +49,7 @@ export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
     }
 
     const data = await res.json();
-        
+
     return data;
   }
 
@@ -58,4 +58,4 @@ export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
   } catch (error) {
     return await attemptFetch(true);
   }
-} 
+}

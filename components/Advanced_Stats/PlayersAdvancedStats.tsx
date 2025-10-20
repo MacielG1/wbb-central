@@ -126,7 +126,7 @@ const generateSeasonOptions = () => {
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
   
-  const currentSeason = currentMonth >= 10 ? currentYear : currentYear - 1;
+  const currentSeason = currentMonth >= 9 ? currentYear : currentYear - 1;
   
   const startYear = currentSeason - 3;
   return Array.from({ length: 4 }, (_, i) => startYear + i);
@@ -138,7 +138,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
 
   
   const currentDate = new Date();
-  const defaultSeason = currentDate.getMonth() >= 10 ? currentDate.getFullYear() : currentDate.getFullYear() - 1;
+  const defaultSeason = currentDate.getMonth() >= 9 ? currentDate.getFullYear() : currentDate.getFullYear() - 1;
   
   const [players, setPlayers] = useState<PlayerStats[]>(initialData);
   const [inputValue, setInputValue] = useState('');

@@ -27,6 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function NCAAWPage(props: { searchParams: SearchParamsType }) {
+  const searchParams = await props.searchParams;
+
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     year: 'numeric',
@@ -34,12 +36,12 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
     day: '2-digit',
   });
   const parts = formatter.formatToParts(new Date());
-  const currentDate = (await props.searchParams).date || 
+  const currentDate = searchParams.date || 
     `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 
   let data = (await fetchSchedule(currentDate)) as APIResponse;
   
-  if (data.events.length === 0 && !(await props.searchParams).date) {
+  if (data.events.length === 0 && !searchParams.date) {
 
     const availableDates = data.leagues[0].calendar;
     
@@ -47,7 +49,7 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
       const today = new Date();
       let closestDate = availableDates[0];
       let closestDiff = Math.abs(new Date(closestDate).getTime() - today.getTime());
-      
+
       for (const dateStr of availableDates) {
         const date = new Date(dateStr);
         const diff = Math.abs(date.getTime() - today.getTime());

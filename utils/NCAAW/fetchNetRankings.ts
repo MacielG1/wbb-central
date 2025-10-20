@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife } from 'next/cache';
 
 export type TeamRanking = {
   rank: number;

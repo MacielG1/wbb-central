@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import { Suspense } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import NavbarSports from '@/components/NavbarSports';
@@ -33,14 +34,18 @@ export default function RootLayout({
           src="//unpkg.com/react-scan/dist/auto.global.js"
         /> */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <TooltipProvider>
-            <div className="flex flex-col bg-neutral-950">
-              <NavbarSports />
-              <div className="flex-1 bg-neutral-950">{children}</div>
-            </div>
-          </TooltipProvider>
-        </ThemeProvider>
+        <Suspense fallback={null}>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <TooltipProvider>
+              <div className="flex flex-col bg-neutral-950">
+                <Suspense fallback={null}>
+                  <NavbarSports />
+                </Suspense>
+                <div className="flex-1 bg-neutral-950">{children}</div>
+              </div>
+            </TooltipProvider>
+          </ThemeProvider>
+        </Suspense>
       </body>
     </html>
   );

@@ -3,7 +3,9 @@ import { fetchPlayersStatsBT } from '@/utils/NCAAW/fetchPlayersBT';
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 
-export type ParamsType = Promise<{ league: string }>;
+type Props = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
 
@@ -17,11 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function PlayersPage() {
-  const data = await fetchPlayersStatsBT();
-  if (!data) {
-    return <div>Error loading data</div>;
-  }
+export default async function PlayersPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const yearParam = params.year ? Number(params.year) : undefined;
+  const data = await fetchPlayersStatsBT(yearParam);
 
   return ( 
     <div className="h-[96vh]">
