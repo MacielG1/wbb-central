@@ -100,7 +100,7 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     seasonType: 'Regular Season',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'winPct', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: filters.seasonType.toLowerCase().includes('playoff') ? 'gamesPlayed' : 'winPct', direction: 'desc' });
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [hasAutoSelectedYear, setHasAutoSelectedYear] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, any>>({});
@@ -141,6 +141,9 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
   const handleSeasonTypeChange = (seasonType: string) => {
     setFilters((prev) => ({ ...prev, seasonType }));
+    // Update sort to GP for playoffs, Win% for regular season
+    const newSortKey = seasonType.toLowerCase().includes('playoff') ? 'gamesPlayed' : 'winPct';
+    setSortConfig({ key: newSortKey, direction: 'desc' });
     fetchYearData(filters.season, seasonType);
   };
 
@@ -156,14 +159,17 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
 
   const sortedTeams = useMemo((): WNBATeamStatsWithRank[] => {
     const teamsToRank = filters.search ? searchFilteredTeams : teams;
+    const isPlayoffsSort = filters.seasonType.toLowerCase().includes('playoff');
 
     if (!sortConfig.key) {
-      const defaultSorted = [...teamsToRank].sort((a, b) => (b.winPct ?? 0) - (a.winPct ?? 0));
+      const defaultKey = isPlayoffsSort ? 'gamesPlayed' : 'winPct';
+      const defaultSorted = [...teamsToRank].sort((a, b) => (b[defaultKey] ?? 0) - (a[defaultKey] ?? 0));
       return defaultSorted.map((team, index) => ({ ...team, rank: index + 1 }));
     }
 
     const sorted = [...teamsToRank].sort((a, b) => {
-      const key = sortConfig.key === 'rank' ? 'winPct' : sortConfig.key;
+      const defaultKey = isPlayoffsSort ? 'gamesPlayed' : 'winPct';
+      const key = sortConfig.key === 'rank' ? defaultKey : sortConfig.key;
       if (!key) return 0;
 
       const aValue = a[key as keyof WNBATeamStats];
@@ -303,10 +309,12 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     autoSelectMostRecentYearWithData();
   }, [teams.length, isLoading, filters.season, hasAutoSelectedYear, yearParam, router, pathname, searchParams]);
 
-  const columns: {
-    key: keyof WNBATeamStats | 'rank';
+  const isPlayoffs = filters.seasonType.toLowerCase().includes('playoff');
+
+  const allColumns: {
+    key: keyof WNBATeamStatsWithRank;
     label: string;
-    sortable?: boolean;
+    sortable: boolean;
     width: number;
     style?: React.CSSProperties;
     headerClassName?: string;
@@ -356,6 +364,11 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
     { key: 'pf', label: 'PF', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
     { key: 'plusMinus', label: '+/-', sortable: true, width: columnWidths.compact, headerClassName: cellClass, cellClassName: cellClass },
   ];
+
+  // Filter out W/L/Win%/GB columns for playoffs
+  const columns = isPlayoffs
+    ? allColumns.filter((col) => !['wins', 'losses', 'winPct', 'gb'].includes(col.key))
+    : allColumns;
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-neutral-950 mr-1">
@@ -527,18 +540,22 @@ export default function WNBATeamsStats({ initialData }: WNBATeamsStatsProps) {
                     <td key="gp" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                       {team.gamesPlayed}
                     </td>
-                    <td key="w" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
-                      {team.wins}
-                    </td>
-                    <td key="l" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
-                      {team.losses}
-                    </td>
-                    <td key="winPct" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
-                      {(team.winPct * 100).toFixed(1)}
-                    </td>
-                    <td key="gb" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
-                      {(team.gb ?? 0).toFixed(1)}
-                    </td>
+                    {!isPlayoffs && (
+                      <>
+                        <td key="w" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
+                          {team.wins}
+                        </td>
+                        <td key="l" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
+                          {team.losses}
+                        </td>
+                        <td key="winPct" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
+                          {(team.winPct * 100).toFixed(1)}
+                        </td>
+                        <td key="gb" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
+                          {(team.gb ?? 0).toFixed(1)}
+                        </td>
+                      </>
+                    )}
                     <td key="min" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                       {team.minutes.toFixed(1)}
                     </td>
