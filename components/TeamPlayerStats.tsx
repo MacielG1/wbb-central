@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface PlayerStatsProps {
-  players: Array<{
+  players?: Array<{
     athlete: {
       displayName: string;
       headshot: {
@@ -49,6 +49,16 @@ const sortOptions: SortOption[] = [
 ];
 
 export default function TeamPlayerStats({ players }: PlayerStatsProps) {
+  const safePlayers = Array.isArray(players) ? players : [];
+
+  if (safePlayers.length === 0) {
+    return (
+      <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+        <p className="text-neutral-600 dark:text-neutral-400">Roster data is not available for this team.</p>
+      </div>
+    );
+  }
+
   const [sortBy, setSortBy] = useState<SortOption>(sortOptions[0]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -64,7 +74,7 @@ export default function TeamPlayerStats({ players }: PlayerStatsProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const sortedPlayers = [...players].sort((a, b) => {
+  const sortedPlayers = [...safePlayers].sort((a, b) => {
     const statGroupA = a.statistics.find((stat) => stat.name === sortBy.statType);
     const statGroupB = b.statistics.find((stat) => stat.name === sortBy.statType);
 

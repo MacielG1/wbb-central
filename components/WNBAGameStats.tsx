@@ -37,6 +37,7 @@ interface WNBAGameStatsProps {
               rel: string[];
             }>;
           };
+          score?: string;
           record: Array<{
             type: string;
             summary: string;
@@ -325,11 +326,28 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
   const getTeamScore = (team: typeof homeTeam) => {
     if (!team) return '0';
 
-    // First try to find points directly
-    const points = team.statistics.find((stat) => stat.name === 'points');
-    if (points?.displayValue) return points.displayValue;
+    const headerCompetitor = data.header.competitions[0].competitors.find(
+      (c) => c.team.id === team.team.id
+    );
+    if (headerCompetitor?.score) {
+      return headerCompetitor.score;
+    }
 
-    // If not found, look for total points in the last stat of totals
+    if (headerCompetitor?.linescores && headerCompetitor.linescores.length > 0) {
+      const totalFromLinescores = headerCompetitor.linescores.reduce((sum, period) => {
+        const periodScore = parseInt(period.displayValue || '0', 10);
+        return sum + (isNaN(periodScore) ? 0 : periodScore);
+      }, 0);
+      if (totalFromLinescores > 0) {
+        return totalFromLinescores.toString();
+      }
+    }
+
+    const points = team.statistics.find((stat) => stat.name === 'points');
+    if (points?.displayValue) {
+      return points.displayValue;
+    }
+
     const teamPlayers = data.boxscore.players?.find((p) => p.team.id === team.team.id);
     if (teamPlayers) {
       const totals = teamPlayers.statistics[0].totals;

@@ -46,9 +46,9 @@ export async function fetchNetRankings(): Promise<NetRankingsResponse> {
     // Parse each team row
     $('.rankings-content tbody tr').each((_, element) => {
       const rank = parseInt($(element).find('td:first-child').text(), 10);
-      // name is the third td
-      const name = $(element).find('td:nth-child(3)').text().trim();
-      const record = $(element).find('td:nth-child(5)').text().trim();
+      // name is the second td
+      const name = $(element).find('td:nth-child(2)').text().trim();
+      const record = $(element).find('td:nth-child(3)').text().trim();
       if (rank && name) {
         rankings.push({
           rank,

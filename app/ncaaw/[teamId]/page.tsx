@@ -82,7 +82,7 @@ export default async function TeamPage(props: { params: paramsType }) {
 
       <section className="w-full mx-auto p-2  md:p-3 xl:p-2 2xl:p-6 2xl:pt-1 border-r border-neutral-200 dark:border-neutral-800">
         <Suspense fallback={null}>
-          <TeamPlayerStats players={rosterData.results[0].leaders} />
+          <TeamPlayerStats players={rosterData?.results?.[0]?.leaders} />
         </Suspense>
       </section>
     </main>
