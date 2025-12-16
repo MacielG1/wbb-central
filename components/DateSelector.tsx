@@ -1,10 +1,11 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useRef, useEffect, useState, useTransition } from 'react';
 import type { League } from '@/types/espn';
+import Link from 'next/link';
 
 interface DateSelectorProps {
   league: League;
@@ -16,8 +17,26 @@ export default function DateSelector({ league }: DateSelectorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentDateRef = useRef<HTMLAnchorElement>(null);
   const [isContentReady, setIsContentReady] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [loadingDate, setLoadingDate] = useState<string | null>(null);
+  const hasInitialScrolledRef = useRef(false);
+  const userClickedDateRef = useRef(false);
 
-  const currentDate = searchParams.get('date') ? parseUrlDate(searchParams.get('date')!) : new Date();
+  function getTodayInET() {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(new Date());
+    const year = parseInt(parts.find((p) => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find((p) => p.type === 'month')?.value || '0') - 1;
+    const day = parseInt(parts.find((p) => p.type === 'day')?.value || '0');
+    return new Date(year, month, day);
+  }
+
+  const currentDate = searchParams.get('date') ? parseUrlDate(searchParams.get('date')!) : getTodayInET();
 
   function parseUrlDate(dateString: string) {
     const cleanDate = dateString.replace(/-/g, '');
@@ -27,21 +46,26 @@ export default function DateSelector({ league }: DateSelectorProps) {
     return new Date(year, month, day);
   }
 
-  // Get available dates from calendar
   const availableDates = league.calendar.map((dateString) => {
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
     const date = new Date(dateString);
     date.setHours(0, 0, 0, 0);
     return date;
   });
 
-  // Find closest date in available dates
   function findClosestAvailableDate(targetDate: Date, availableDates: Date[]) {
-    // First check if the exact date exists
-    const exactMatch = availableDates.find(date => 
-      date.toDateString() === targetDate.toDateString());
-    
+    const exactMatch = availableDates.find((date) => date.toDateString() === targetDate.toDateString());
+
     if (exactMatch) return exactMatch;
-    
+
     // If no exact match, find closest date
     return availableDates.reduce((closest, date) => {
       const currentDiff = Math.abs(date.getTime() - targetDate.getTime());
@@ -51,9 +75,7 @@ export default function DateSelector({ league }: DateSelectorProps) {
   }
 
   // Get the closest available date to the current date
-  const closestAvailableDate = availableDates.length > 0 
-    ? findClosestAvailableDate(currentDate, availableDates) 
-    : null;
+  const closestAvailableDate = availableDates.length > 0 ? findClosestAvailableDate(currentDate, availableDates) : null;
 
   function formatDateForUrl(date: Date) {
     const year = date.getFullYear();
@@ -63,7 +85,7 @@ export default function DateSelector({ league }: DateSelectorProps) {
   }
 
   function formatDateForDisplay(date: Date) {
-    const today = new Date();
+    const today = getTodayInET();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const yesterday = new Date(today);
@@ -107,28 +129,19 @@ export default function DateSelector({ league }: DateSelectorProps) {
   }
 
   const scrollToCurrentDate = useCallback(() => {
-    if (!scrollContainerRef.current || !currentDateRef.current) return;
-
-    const container = scrollContainerRef.current;
-    const target = currentDateRef.current;
-    
-    // Calculate the center position
-    const containerWidth = container.clientWidth;
-    const targetLeft = target.offsetLeft;
-    const targetWidth = target.clientWidth;
-    
-    // Calculate the scroll position that would center the target
-    const scrollLeft = targetLeft - (containerWidth / 2) + (targetWidth / 2);
-    
-    container.scrollTo({
-      left: scrollLeft,
-      behavior: 'smooth',
-    });
+    if (scrollContainerRef.current && currentDateRef.current) {
+      currentDateRef.current.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
   }, [currentDate, closestAvailableDate]);
 
+  // Set up ResizeObserver to detect when container is ready
   useEffect(() => {
     if (!scrollContainerRef.current) return;
-   
+
     const readyTimer = setTimeout(() => {
       setIsContentReady(true);
     }, 100);
@@ -147,78 +160,138 @@ export default function DateSelector({ league }: DateSelectorProps) {
     };
   }, []);
 
+  // Check if current date is centered in viewport
+  const isDateCentered = useCallback(() => {
+    if (!scrollContainerRef.current || !currentDateRef.current) return false;
+
+    const container = scrollContainerRef.current;
+    const dateElement = currentDateRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const dateRect = dateElement.getBoundingClientRect();
+
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const dateCenter = dateRect.left + dateRect.width / 2;
+
+    return Math.abs(containerCenter - dateCenter) < 100;
+  }, []);
+
   useEffect(() => {
-    if (!isContentReady) return;
+    if (!isContentReady || hasInitialScrolledRef.current) return;
 
     scrollToCurrentDate();
+    hasInitialScrolledRef.current = true;
 
-    // Multiple retry attempts with increasing delays
-    const retryDelays = [100, 300, 500, 1000, 3000];
-    const retryTimers = retryDelays.map(delay => 
+    const retryDelays = [100, 300];
+    const retryTimers = retryDelays.map((delay) =>
       setTimeout(() => {
-        if (scrollContainerRef.current && currentDateRef.current) {
+        if (scrollContainerRef.current && currentDateRef.current && !userClickedDateRef.current) {
           scrollToCurrentDate();
         }
       }, delay)
     );
 
+    const threeSecondTimer = setTimeout(() => {
+      if (!currentDateRef.current && scrollContainerRef.current && !userClickedDateRef.current) {
+        scrollToCurrentDate();
+      }
+    }, 3000);
+
     return () => {
-      retryTimers.forEach(timer => clearTimeout(timer));
+      retryTimers.forEach((timer) => clearTimeout(timer));
+      clearTimeout(threeSecondTimer);
     };
   }, [isContentReady, scrollToCurrentDate]);
 
-  // Add a mutation observer to handle dynamic content changes
   useEffect(() => {
-    if (!isContentReady || !scrollContainerRef.current) return;
+    if (!isContentReady) return;
 
-    const observer = new MutationObserver(() => {
-      scrollToCurrentDate();
-    });
+    const lateCheckTimer = setTimeout(() => {
+      if (!userClickedDateRef.current && currentDateRef.current && !isDateCentered()) {
+        scrollToCurrentDate();
+      }
+    }, 1000);
 
-    observer.observe(scrollContainerRef.current, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-    });
+    return () => clearTimeout(lateCheckTimer);
+  }, [isContentReady, isDateCentered, scrollToCurrentDate]);
 
-    return () => observer.disconnect();
-  }, [isContentReady, scrollToCurrentDate]);
+  // Reset user click flag after navigation completes
+  useEffect(() => {
+    if (!isPending && userClickedDateRef.current) {
+      const timer = setTimeout(() => {
+        userClickedDateRef.current = false;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isPending]);
+
+  // Clear loading date when transition completes or date changes
+  useEffect(() => {
+    if (!isPending) {
+      setLoadingDate(null);
+    }
+  }, [isPending, currentDate]);
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-neutral-900 border-b-0 border-neutral-200 dark:border-neutral-800">
-      <button onClick={() => scrollDates('left')} className="p-1 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full shrink-0 z-[10]">
+    <div className={cn('relative flex items-center px-4 py-2 bg-white dark:bg-neutral-900 border-b-0 border-neutral-200 dark:border-neutral-800')}>
+      <button
+        onClick={() => scrollDates('left')}
+        className="absolute left-2 top-1/2 -translate-y-1/2 p-1 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full shrink-0 z-10 bg-white dark:bg-neutral-900"
+      >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      <div ref={scrollContainerRef} className="flex space-x-1 overflow-x-auto scrollbar-hide mx-2 scroll-smooth">
+      <div ref={scrollContainerRef} className="flex space-x-1 overflow-x-auto scrollbar-hide scroll-smooth flex-1 min-w-0 pl-8 pr-8">
         {availableDates.map((date) => {
           const urlDate = formatDateForUrl(date);
           const isCurrentDate = date.toDateString() === currentDate.toDateString();
-          const isClosestDate = !isCurrentDate && closestAvailableDate && 
-                               date.toDateString() === closestAvailableDate.toDateString();
+          const isClosestDate = !isCurrentDate && closestAvailableDate && date.toDateString() === closestAvailableDate.toDateString();
           const shouldHighlight = isCurrentDate || isClosestDate;
-          
+
+          const isLoading = loadingDate === urlDate;
+
           return (
-            <a
+            <Link
               key={date.toISOString()}
               ref={shouldHighlight ? currentDateRef : null}
               href={`?${createQueryString(urlDate)}`}
+              prefetch={true}
               onClick={(e) => {
-                e.preventDefault();
-                router.push(`?${createQueryString(urlDate)}`);
+                userClickedDateRef.current = true;
+                setLoadingDate(urlDate);
+                // Auto-center the clicked date
+                const target = e.currentTarget;
+                setTimeout(() => {
+                  target.scrollIntoView({
+                    behavior: 'smooth',
+                    inline: 'center',
+                    block: 'nearest',
+                  });
+                }, 50);
+                startTransition(() => {
+                  router.push(`?${createQueryString(urlDate)}`);
+                });
               }}
               className={cn(
-                'px-3 py-1 text-sm rounded-full whitespace-nowrap shrink-0 cursor-pointer',
-                shouldHighlight ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                'relative px-3 py-1 text-sm rounded-full whitespace-nowrap shrink-0 cursor-pointer transition-opacity',
+                shouldHighlight ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                isLoading && 'pointer-events-none'
               )}
             >
-              {formatDateForDisplay(date)}
-            </a>
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-neutral-900/90 rounded-full z-10">
+                  <Loader2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 animate-spin" />
+                </div>
+              )}
+              <span className={cn(isLoading && 'opacity-60')}>{formatDateForDisplay(date)}</span>
+            </Link>
           );
         })}
       </div>
 
-      <button onClick={() => scrollDates('right')} className="p-1 cursor-pointer z-[10] hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full shrink-0">
+      <button
+        onClick={() => scrollDates('right')}
+        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full shrink-0 z-30 bg-white dark:bg-neutral-900"
+      >
         <ChevronRight className="w-5 h-5" />
       </button>
     </div>

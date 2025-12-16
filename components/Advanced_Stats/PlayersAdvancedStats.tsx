@@ -96,12 +96,13 @@ interface FilterConfig {
   season: number;
 }
 
-
 const findTeamData = (teamName: string) => {
   const teamNameLower = teamName.toLowerCase();
 
   if (specialCasesBT[teamNameLower]) {
-    return allTeamsData.find((t) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower]);
+    return allTeamsData.find(
+      (t) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower]
+    );
   }
 
   const nicknameMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === teamNameLower);
@@ -116,7 +117,9 @@ const findTeamData = (teamName: string) => {
     const nicknameParts = t.nickname.toLowerCase().split(' ');
 
     return nameParts.every(
-      (part) => displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) || nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
+      (part) =>
+        displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) ||
+        nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
     );
   });
 };
@@ -125,9 +128,9 @@ const generateSeasonOptions = () => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
-  
+
   const currentSeason = currentMonth >= 9 ? currentYear : currentYear - 1;
-  
+
   const startYear = currentSeason - 3;
   return Array.from({ length: 4 }, (_, i) => startYear + i);
 };
@@ -136,10 +139,9 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   const pathname = usePathname();
   const league = pathname?.split('/')[1];
 
-  
   const currentDate = new Date();
   const defaultSeason = currentDate.getMonth() >= 9 ? currentDate.getFullYear() : currentDate.getFullYear() - 1;
-  
+
   const [players, setPlayers] = useState<PlayerStats[]>(initialData);
   const [inputValue, setInputValue] = useState('');
   const [filters, setFilters] = useState<FilterConfig>({
@@ -187,7 +189,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   };
 
   const handleYearChange = (year: number) => {
-    setFilters(prev => ({ ...prev, season: year }));
+    setFilters((prev) => ({ ...prev, season: year }));
     fetchYearData(year);
   };
 
@@ -222,7 +224,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     const minMinutes = filters.minMinutes;
     const minGames = filters.minGames;
 
-    const maxGamesPlayed = Math.max(...players.map(player => player.gamesPlayed));
+    const maxGamesPlayed = Math.max(...players.map((player) => player.gamesPlayed));
     const effectiveMinGames = maxGamesPlayed >= 10 ? minGames : 0;
 
     return players.filter((player) => {
@@ -231,7 +233,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   })();
 
   const effectiveMinGames = useMemo(() => {
-    const maxGamesPlayed = Math.max(...players.map(player => player.gamesPlayed));
+    const maxGamesPlayed = Math.max(...players.map((player) => player.gamesPlayed));
     return maxGamesPlayed >= 10 ? filters.minGames : 0;
   }, [players, filters.minGames]);
 
@@ -254,19 +256,55 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
   })();
 
   const searchFilteredPlayers = (() => {
-    const searchTerm = filters.search.toLowerCase();
+    const searchTerm = filters.search.toLowerCase().trim();
     if (!searchTerm) return qualifiedPlayers;
 
+    const exactTeamMatch = allTeamsData.find((t) => t.nickname.toLowerCase() === searchTerm || t.displayName.toLowerCase() === searchTerm);
+
+    if (exactTeamMatch) {
+      return qualifiedPlayers.filter((player) => {
+        const { teamData } = teamDataCache[player.team];
+        return teamData?.id === exactTeamMatch.id;
+      });
+    }
+
     const searchTerms = searchTerm.split(' ').filter(Boolean);
-    
+
     return qualifiedPlayers.filter((player) => {
       const { teamData, specialCase } = teamDataCache[player.team];
-      
-      const searchableText = `${player.playerName.toLowerCase()} ${specialCase || ''} ${teamData?.nickname.toLowerCase() || ''} ${teamData?.displayName.toLowerCase() || ''}`;
-      
-      return searchTerms.every(term => searchableText.includes(term));
+
+      const searchableText = `${player.playerName.toLowerCase()} ${specialCase || ''} ${teamData?.nickname.toLowerCase() || ''} ${
+        teamData?.displayName.toLowerCase() || ''
+      }`;
+
+      return searchTerms.every((term) => searchableText.includes(term));
     });
   })();
+
+  // Calculate weighted score for shooting stats: percentage × √made
+  const getShootingWeightedScore = (player: PlayerStats, key: keyof PlayerStats): number => {
+    const shootingMappings: Record<string, { made: keyof PlayerStats; attempts: keyof PlayerStats }> = {
+      freeThrowPercentage: { made: 'freeThrowsMade', attempts: 'freeThrowsAttempted' },
+      twoPPercentage: { made: 'twoPMade', attempts: 'twoPAttempted' },
+      threePPercentage: { made: 'threePMade', attempts: 'threePAttempted' },
+      rimPercentage: { made: 'rimMakes', attempts: 'rimAttempts' },
+      midRangePercentage: { made: 'midRangeMakes', attempts: 'midRangeAttempts' },
+    };
+
+    const mapping = shootingMappings[key];
+    if (!mapping) return 0;
+
+    const made = Number(player[mapping.made]) || 0;
+    const attempts = Number(player[mapping.attempts]) || 0;
+
+    if (attempts === 0) return 0;
+    const percentage = made / attempts;
+    return percentage * Math.sqrt(made);
+  };
+
+  const isShootingPercentageStat = (key: keyof PlayerStats): boolean => {
+    return ['freeThrowPercentage', 'twoPPercentage', 'threePPercentage', 'rimPercentage', 'midRangePercentage'].includes(key);
+  };
 
   const sortedPlayers = (() => {
     if (!sortConfig.key) return searchFilteredPlayers;
@@ -284,6 +322,13 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     };
 
     return [...searchFilteredPlayers].sort((a, b) => {
+      // Use weighted score for shooting percentage stats
+      if (isShootingPercentageStat(sortConfig.key!)) {
+        const aScore = getShootingWeightedScore(a, sortConfig.key!);
+        const bScore = getShootingWeightedScore(b, sortConfig.key!);
+        return sortConfig.direction === 'asc' ? aScore - bScore : bScore - aScore;
+      }
+
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
 
@@ -338,19 +383,20 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     }));
   };
 
-  const handleRowClick = useCallback((index: number) => {
-    if (index >= 0 && index < sortedPlayers.length) {
-      const player = sortedPlayers[index];
-      const playerId = `${player.playerName}_${player.team}`;
-      setSelectedPlayerId((prevId) => prevId === playerId ? null : playerId);
-    } 
-  }, [sortedPlayers]);
+  const handleRowClick = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < sortedPlayers.length) {
+        const player = sortedPlayers[index];
+        const playerId = `${player.playerName}_${player.team}`;
+        setSelectedPlayerId((prevId) => (prevId === playerId ? null : playerId));
+      }
+    },
+    [sortedPlayers]
+  );
 
   const selectedRowIndex = useMemo(() => {
     if (!selectedPlayerId) return null;
-    return sortedPlayers.findIndex(
-      (player) => `${player.playerName}_${player.team}` === selectedPlayerId
-    );
+    return sortedPlayers.findIndex((player) => `${player.playerName}_${player.team}` === selectedPlayerId);
   }, [selectedPlayerId, sortedPlayers]);
 
   if (!players.length || !thresholds) return <div>Loading...</div>;
@@ -414,53 +460,66 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     );
   };
 
-  const getRowStyle = useCallback((index: number) => ({
-    cursor: 'pointer',
-    backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
-    borderLeft: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
-    borderRight: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
-    borderTop: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
-    borderBottom: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
-  }), [selectedRowIndex]);
+  const getRowStyle = useCallback(
+    (index: number) => ({
+      cursor: 'pointer',
+      backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
+      borderLeft: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
+      borderRight: selectedRowIndex === index ? '2px solid #4f39f640' : '2px solid #171717',
+      borderTop: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
+      borderBottom: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
+    }),
+    [selectedRowIndex]
+  );
 
-  const getCellStyle = useCallback((baseStyle: any, index: number, isFixed: boolean = false) => {
-    if (isFixed) {
-      return {
-        backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
-        color: 'white',
-        boxShadow: 'none',
-      };
-    }
-    if (!baseStyle.backgroundColor || baseStyle.backgroundColor === '#171717') {
-      return {
-        backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
-        color: 'white',
-        boxShadow: 'none',
-      };
-    }
-    return baseStyle;
-  }, [selectedRowIndex]);
+  const getCellStyle = useCallback(
+    (baseStyle: any, index: number, isFixed: boolean = false) => {
+      if (isFixed) {
+        return {
+          backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
+          color: 'white',
+          boxShadow: 'none',
+        };
+      }
+      if (!baseStyle.backgroundColor || baseStyle.backgroundColor === '#171717') {
+        return {
+          backgroundColor: selectedRowIndex === index ? '#1a1835' : '#171717',
+          color: 'white',
+          boxShadow: 'none',
+        };
+      }
+      return baseStyle;
+    },
+    [selectedRowIndex]
+  );
 
-  const MemoizedTableRow = useMemo(() => React.memo(({ item: _item, ...props }: any) => {
-    const index = props['data-index'] as number;
-    return (
-      <tr
-        {...props}
-        className="border-b bg-neutral-900 hover:bg-gray-50 text-xs"
-        onClick={() => handleRowClick(index)}
-        style={getRowStyle(index)}
-      />
-    );
-  }), [handleRowClick, getRowStyle]);
+  const MemoizedTableRow = useMemo(
+    () =>
+      React.memo(({ item: _item, ...props }: any) => {
+        const index = props['data-index'] as number;
+        return (
+          <tr
+            {...props}
+            className="border-b bg-neutral-900 hover:bg-gray-50 text-xs"
+            onClick={() => handleRowClick(index)}
+            style={getRowStyle(index)}
+          />
+        );
+      }),
+    [handleRowClick, getRowStyle]
+  );
 
   const cellStyleCache = useMemo(() => new Map<string, React.CSSProperties>(), []);
-  const getCachedCellStyle = useCallback((baseStyle: any, index: number, isFixed: boolean = false) => {
-    const key = `${JSON.stringify(baseStyle)}-${index}-${isFixed}-${selectedRowIndex === index}`;
-    if (!cellStyleCache.has(key)) {
-      cellStyleCache.set(key, getCellStyle(baseStyle, index, isFixed));
-    }
-    return cellStyleCache.get(key);
-  }, [selectedRowIndex, getCellStyle, cellStyleCache]);
+  const getCachedCellStyle = useCallback(
+    (baseStyle: any, index: number, isFixed: boolean = false) => {
+      const key = `${JSON.stringify(baseStyle)}-${index}-${isFixed}-${selectedRowIndex === index}`;
+      if (!cellStyleCache.has(key)) {
+        cellStyleCache.set(key, getCellStyle(baseStyle, index, isFixed));
+      }
+      return cellStyleCache.get(key);
+    },
+    [selectedRowIndex, getCellStyle, cellStyleCache]
+  );
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-neutral-950">
@@ -516,7 +575,6 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
             </select>
           </div>
 
-          
           <div className="flex items-center gap-2">
             <label className="text-sm">Year:</label>
             <select
@@ -556,7 +614,6 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
               )}
             </div>
           </div>
-
 
           <div className="text-sm text-neutral-500">
             Showing {searchFilteredPlayers.length} of {players.length} players
@@ -610,7 +667,11 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   <th className={smallerCellClass} style={{ ...firstColumnStyle, width: columnWidths.number }}>
                     #
                   </th>
-                  <th className={nameTeamCellClass} style={{ ...secondColumnStyle, width: columnWidths.playerName }} onClick={() => handleSort('playerName')}>
+                  <th
+                    className={nameTeamCellClass}
+                    style={{ ...secondColumnStyle, width: columnWidths.playerName }}
+                    onClick={() => handleSort('playerName')}
+                  >
                     Player {getSortIndicator('playerName')}
                   </th>
                   <th
@@ -627,10 +688,19 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   >
                     Team {getSortIndicator('team')}
                   </th>
-                  <th className={conferenceCellClass} style={{ ...headerStyle, width: columnWidths.superCompact }} onClick={() => handleSort('conference')}>
+                  <th
+                    className={conferenceCellClass}
+                    style={{ ...headerStyle, width: columnWidths.superCompact }}
+                    onClick={() => handleSort('conference')}
+                  >
                     Conf {getSortIndicator('conference')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.smallStats }} onClick={() => handleSort('porpag')} title={statDescriptions.porpag}>
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.smallStats }}
+                    onClick={() => handleSort('porpag')}
+                    title={statDescriptions.porpag}
+                  >
                     PORPAG {getSortIndicator('porpag')}
                   </th>
                   <th
@@ -657,7 +727,12 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   >
                     DBPM {getSortIndicator('defensiveBoxPlusMinus')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.smallStats }} onClick={() => handleSort('adjoe')} title={statDescriptions.adjoe}>
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.smallStats }}
+                    onClick={() => handleSort('adjoe')}
+                    title={statDescriptions.adjoe}
+                  >
                     AdjOE {getSortIndicator('adjoe')}
                   </th>
                   <th
@@ -692,7 +767,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   >
                     DGBPM {getSortIndicator('defensiveGameBoxPlusMinus')}
                   </th>
- 
+
                   <th
                     className={cellClass}
                     style={{ ...headerStyle, width: columnWidths.compact }}
@@ -717,7 +792,12 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   >
                     AST/TO {getSortIndicator('assistToTurnover')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.compact }} onClick={() => handleSort('usage')} title={statDescriptions.usage}>
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.compact }}
+                    onClick={() => handleSort('usage')}
+                    title={statDescriptions.usage}
+                  >
                     Usage {getSortIndicator('usage')}
                   </th>
                   <th
@@ -746,10 +826,18 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('blocks')}>
                     BLK {getSortIndicator('blocks')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('offensiveRebounds')}>
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.basicStats }}
+                    onClick={() => handleSort('offensiveRebounds')}
+                  >
                     OReb {getSortIndicator('offensiveRebounds')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.basicStats }} onClick={() => handleSort('defensiveRebounds')}>
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.basicStats }}
+                    onClick={() => handleSort('defensiveRebounds')}
+                  >
                     DReb {getSortIndicator('defensiveRebounds')}
                   </th>
                   <th
@@ -864,7 +952,12 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   >
                     DPORPAG {getSortIndicator('defensivePorpag')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.smallStats }} onClick={() => handleSort('rimMakes')} title="Rim shots made-attempted">
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.smallStats }}
+                    onClick={() => handleSort('rimMakes')}
+                    title="Rim shots made-attempted"
+                  >
                     Rim {getSortIndicator('rimMakes')}
                   </th>
                   <th
@@ -911,7 +1004,12 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   <th className={cellClass} style={{ ...headerStyle, width: columnWidths.hometown }} onClick={() => handleSort('hometown')}>
                     Hometown {getSortIndicator('hometown')}
                   </th>
-                  <th className={cellClass} style={{ ...headerStyle, width: columnWidths.superCompact }} onClick={() => handleSort('recruitRank')} title="Recruit Rank">
+                  <th
+                    className={cellClass}
+                    style={{ ...headerStyle, width: columnWidths.superCompact }}
+                    onClick={() => handleSort('recruitRank')}
+                    title="Recruit Rank"
+                  >
                     RR {getSortIndicator('recruitRank')}
                   </th>
                 </tr>
@@ -993,7 +1091,11 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                 <td key="conf" className={conferenceCellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.superCompact }}>
                   {player.conference}
                 </td>
-                <td key="porpag" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.porpag, thresholds.porpag), index), width: columnWidths.porpag }}>
+                <td
+                  key="porpag"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.porpag, thresholds.porpag), index), width: columnWidths.porpag }}
+                >
                   {player.porpag?.toFixed(2)}
                 </td>
                 <td
@@ -1006,215 +1108,324 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                 <td
                   key="offensiveBoxPlusMinus"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.offensiveBoxPlusMinus, thresholds.offensiveBoxPlusMinus, 'offensiveBoxPlusMinus'), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.offensiveBoxPlusMinus, thresholds.offensiveBoxPlusMinus, 'offensiveBoxPlusMinus'),
+                      index
+                    ),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {player.offensiveBoxPlusMinus?.toFixed(1)}
                 </td>
                 <td
                   key="defensiveBoxPlusMinus"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.defensiveBoxPlusMinus, thresholds.defensiveBoxPlusMinus), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.defensiveBoxPlusMinus, thresholds.defensiveBoxPlusMinus), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {player.defensiveBoxPlusMinus?.toFixed(1)}
                 </td>
-                <td key="adjoe" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.adjoe, thresholds.adjoe), index), width: columnWidths.smallStats }}>
+                <td
+                  key="adjoe"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.adjoe, thresholds.adjoe), index), width: columnWidths.smallStats }}
+                >
                   {player.adjoe?.toFixed(1)}
                 </td>
                 <td
                   key="adjustedDefensiveRating"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getDefensiveStyle(player.adjustedDefensiveRating, thresholds.adjustedDefensiveRating), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getDefensiveStyle(player.adjustedDefensiveRating, thresholds.adjustedDefensiveRating), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.adjustedDefensiveRating?.toFixed(1)}
                 </td>
                 <td
                   key="gameBoxPlusMinus"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.gameBoxPlusMinus, thresholds.gameBoxPlusMinus), index), width: columnWidths.default }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.gameBoxPlusMinus, thresholds.gameBoxPlusMinus), index),
+                    width: columnWidths.default,
+                  }}
                 >
                   {player.gameBoxPlusMinus?.toFixed(1)}
                 </td>
                 <td
                   key="offensiveGameBoxPlusMinus"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.offensiveGameBoxPlusMinus, thresholds.offensiveGameBoxPlusMinus), index), width: columnWidths.default }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.offensiveGameBoxPlusMinus, thresholds.offensiveGameBoxPlusMinus), index),
+                    width: columnWidths.default,
+                  }}
                 >
                   {player.offensiveGameBoxPlusMinus?.toFixed(1)}
                 </td>
                 <td
                   key="defensiveGameBoxPlusMinus"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.defensiveGameBoxPlusMinus, thresholds.defensiveGameBoxPlusMinus), index), width: columnWidths.default }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.defensiveGameBoxPlusMinus, thresholds.defensiveGameBoxPlusMinus), index),
+                    width: columnWidths.default,
+                  }}
                 >
                   {player.defensiveGameBoxPlusMinus?.toFixed(1)}
                 </td>
-  
+
                 <td
                   key="effectiveFGPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.effectiveFGPercentage, thresholds.effectiveFGPercentage, 'effectiveFGPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.effectiveFGPercentage, thresholds.effectiveFGPercentage, 'effectiveFGPercentage'),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.effectiveFGPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="trueShootingPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.trueShootingPercentage, thresholds.trueShootingPercentage, 'trueShootingPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.trueShootingPercentage, thresholds.trueShootingPercentage, 'trueShootingPercentage'),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.trueShootingPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="assistToTurnover"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.assistToTurnover, thresholds.assistToTurnover), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.assistToTurnover, thresholds.assistToTurnover), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.assistToTurnover?.toFixed(2)}
                 </td>
-                <td key="usage" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.usage, thresholds.usage), index), width: columnWidths.smallStats }}>
+                <td
+                  key="usage"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.usage, thresholds.usage), index), width: columnWidths.smallStats }}
+                >
                   {player.usage?.toFixed(1)}
                 </td>
-                <td
-                  key="minutesPercentage"
-                  className={cellClass}
-                  style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}
-                >
+                <td key="minutesPercentage" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.compact }}>
                   {player.minutesPercentage?.toFixed(1)}
                 </td>
-                <td
-                  key="minutesPerGame"
-                  className={cellClass}
-                  style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}
-                >
+                <td key="minutesPerGame" className={cellClass} style={{ ...getCachedCellStyle({}, index), width: columnWidths.basicStats }}>
                   {player.minutesPerGame?.toFixed(1)}
                 </td>
-                <td key="points" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.points, thresholds.points), index), width: columnWidths.basicStats }}>
+                <td
+                  key="points"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.points, thresholds.points), index), width: columnWidths.basicStats }}
+                >
                   {player.points?.toFixed(1)}
                 </td>
-                <td key="assists" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.assists, thresholds.assists), index), width: columnWidths.basicStats }}>
+                <td
+                  key="assists"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.assists, thresholds.assists), index), width: columnWidths.basicStats }}
+                >
                   {player.assists?.toFixed(1)}
                 </td>
                 <td
                   key="totalRebounds"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.totalRebounds, thresholds.totalRebounds), index), width: columnWidths.basicStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.totalRebounds, thresholds.totalRebounds), index),
+                    width: columnWidths.basicStats,
+                  }}
                 >
                   {player.totalRebounds?.toFixed(1)}
                 </td>
-                <td key="steals" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.steals, thresholds.steals), index), width: columnWidths.basicStats }}>
+                <td
+                  key="steals"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.steals, thresholds.steals), index), width: columnWidths.basicStats }}
+                >
                   {player.steals?.toFixed(1)}
                 </td>
-                <td key="blocks" className={cellClass} style={{ ...getCachedCellStyle(getStatStyle(player.blocks, thresholds.blocks), index), width: columnWidths.basicStats }}>
+                <td
+                  key="blocks"
+                  className={cellClass}
+                  style={{ ...getCachedCellStyle(getStatStyle(player.blocks, thresholds.blocks), index), width: columnWidths.basicStats }}
+                >
                   {player.blocks?.toFixed(1)}
                 </td>
                 <td
                   key="offensiveRebounds"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.offensiveRebounds, thresholds.offensiveRebounds, 'offensiveRebounds'), index), width: columnWidths.basicStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.offensiveRebounds, thresholds.offensiveRebounds, 'offensiveRebounds'), index),
+                    width: columnWidths.basicStats,
+                  }}
                 >
                   {player.offensiveRebounds?.toFixed(1)}
                 </td>
                 <td
                   key="defensiveRebounds"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.defensiveRebounds, thresholds.defensiveRebounds, 'defensiveRebounds'), index), width: columnWidths.basicStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.defensiveRebounds, thresholds.defensiveRebounds, 'defensiveRebounds'), index),
+                    width: columnWidths.basicStats,
+                  }}
                 >
                   {player.defensiveRebounds?.toFixed(1)}
                 </td>
                 <td
                   key="offensiveReboundPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.offensiveReboundPercentage, thresholds.offensiveReboundPercentage, 'offensiveReboundPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.offensiveReboundPercentage, thresholds.offensiveReboundPercentage, 'offensiveReboundPercentage'),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.offensiveReboundPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="defensiveReboundPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.defensiveReboundPercentage, thresholds.defensiveReboundPercentage, 'defensiveReboundPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.defensiveReboundPercentage, thresholds.defensiveReboundPercentage, 'defensiveReboundPercentage'),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.defensiveReboundPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="assistPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.assistPercentage, thresholds.assistPercentage, 'assistPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.assistPercentage, thresholds.assistPercentage, 'assistPercentage'), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.assistPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="turnoverPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getTurnoverStyle(player.turnoverPercentage, thresholds.turnoverPercentage), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getTurnoverStyle(player.turnoverPercentage, thresholds.turnoverPercentage), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.turnoverPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="stealPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.stealPercentage, thresholds.stealPercentage, 'stealPercentage'), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.stealPercentage, thresholds.stealPercentage, 'stealPercentage'), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {player.stealPercentage?.toFixed(1)}
                 </td>
                 <td
                   key="freeThrows"
                   className={`${cellClass} whitespace-nowrap`}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.freeThrowsMade, thresholds.freeThrowsMade), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.freeThrowsMade, thresholds.freeThrowsMade), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {`${Math.round(player.freeThrowsMade)}-${Math.round(player.freeThrowsAttempted)}`}
                 </td>
                 <td
                   key="freeThrowPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.freeThrowPercentage * 100, thresholds.freeThrowPercentage), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.freeThrowPercentage * 100, thresholds.freeThrowPercentage), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {(player.freeThrowPercentage * 100)?.toFixed(1)}
                 </td>
                 <td
                   key="twoPoint"
                   className={`${cellClass} whitespace-nowrap`}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.twoPMade, thresholds.twoPMade, 'twoPMade'), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.twoPMade, thresholds.twoPMade, 'twoPMade'), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {`${Math.round(player.twoPMade)}-${Math.round(player.twoPAttempted)}`}
                 </td>
                 <td
                   key="twoPPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.twoPPercentage * 100, thresholds.twoPPercentage), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.twoPPercentage * 100, thresholds.twoPPercentage), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {(player.twoPPercentage * 100)?.toFixed(1)}
                 </td>
                 <td
                   key="threePoint"
                   className={`${cellClass} whitespace-nowrap`}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.threePMade, thresholds.threePMade, 'threePMade'), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.threePMade, thresholds.threePMade, 'threePMade'), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {`${Math.round(player.threePMade)}-${Math.round(player.threePAttempted)}`}
                 </td>
                 <td
                   key="threePPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.threePPercentage * 100, thresholds.threePPercentage), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.threePPercentage * 100, thresholds.threePPercentage), index),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {(player.threePPercentage * 100)?.toFixed(1)}
                 </td>
                 <td
                   key="offensiveRating"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.offensiveRating, thresholds.offensiveRating), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.offensiveRating, thresholds.offensiveRating), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {player.offensiveRating?.toFixed(1)}
                 </td>
                 <td
                   key="defensiveRating"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getDefensiveStyle(player.defensiveRating, thresholds.defensiveRating), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getDefensiveStyle(player.defensiveRating, thresholds.defensiveRating), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {player.defensiveRating?.toFixed(1)}
                 </td>
                 <td
                   key="defensivePorpag"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.defensivePorpag, thresholds.defensivePorpag, 'defensivePorpag'), index), width: columnWidths.default }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.defensivePorpag, thresholds.defensivePorpag, 'defensivePorpag'), index),
+                    width: columnWidths.default,
+                  }}
                 >
                   {player.defensivePorpag?.toFixed(2)}
                 </td>
@@ -1228,21 +1439,36 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                 <td
                   key="rimPercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.rimPercentage * 100, thresholds.rimPercentage, 'rimPercentage', player.rimAttempts), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.rimPercentage * 100, thresholds.rimPercentage, 'rimPercentage', player.rimAttempts),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {(player.rimPercentage * 100)?.toFixed(1)}
                 </td>
                 <td
                   key="midRangeMakes"
                   className={`${cellClass} whitespace-nowrap`}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.midRangeMakes, thresholds.midRangeMakes), index), width: columnWidths.smallStats }}
+                  style={{
+                    ...getCachedCellStyle(getStatStyle(player.midRangeMakes, thresholds.midRangeMakes), index),
+                    width: columnWidths.smallStats,
+                  }}
                 >
                   {`${player.midRangeMakes}-${player.midRangeAttempts}`}
                 </td>
                 <td
                   key="midRangePercentage"
                   className={cellClass}
-                  style={{ ...getCachedCellStyle(getStatStyle(player.midRangePercentage * 100, thresholds.midRangePercentage, 'midRangePercentage', player.midRangeAttempts), index), width: columnWidths.compact }}
+                  style={{
+                    ...getCachedCellStyle(
+                      getStatStyle(player.midRangePercentage * 100, thresholds.midRangePercentage, 'midRangePercentage', player.midRangeAttempts),
+                      index
+                    ),
+                    width: columnWidths.compact,
+                  }}
                 >
                   {(player.midRangePercentage * 100)?.toFixed(1)}
                 </td>
