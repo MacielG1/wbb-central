@@ -101,7 +101,7 @@ const findTeamData = (teamName: string) => {
 
   if (specialCasesBT[teamNameLower]) {
     return allTeamsData.find(
-      (t) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower]
+      (t) => t.displayName.toLowerCase() === specialCasesBT[teamNameLower] || t.nickname.toLowerCase() === specialCasesBT[teamNameLower],
     );
   }
 
@@ -119,7 +119,7 @@ const findTeamData = (teamName: string) => {
     return nameParts.every(
       (part) =>
         displayNameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))) ||
-        nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', '')))
+        nicknameParts.some((namePart) => namePart.startsWith(part.replace('.', ''))),
     );
   });
 };
@@ -391,7 +391,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
         setSelectedPlayerId((prevId) => (prevId === playerId ? null : playerId));
       }
     },
-    [sortedPlayers]
+    [sortedPlayers],
   );
 
   const selectedRowIndex = useMemo(() => {
@@ -399,20 +399,29 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
     return sortedPlayers.findIndex((player) => `${player.playerName}_${player.team}` === selectedPlayerId);
   }, [selectedPlayerId, sortedPlayers]);
 
+  // Detect mobile screen width for responsive column widths
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   if (!players.length || !thresholds) return <div>Loading...</div>;
 
   const columnWidths = {
-    number: 35,
+    number: isMobile ? 30 : 35,
     superCompact: 50,
     basicStats: 55,
     compact: 60,
     smallStats: 65,
     porpag: 70,
     default: 80,
-    team: 138,
+    team: isMobile ? 110 : 138,
     hometown: 150,
-    playerName: 142,
-  } as const;
+    playerName: isMobile ? 137 : 142,
+  };
 
   const headerStyle = {
     backgroundColor: '#4f39f6',
@@ -469,7 +478,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
       borderTop: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
       borderBottom: selectedRowIndex === index ? '1px solid #4f39f640' : '1px solid #171717',
     }),
-    [selectedRowIndex]
+    [selectedRowIndex],
   );
 
   const getCellStyle = useCallback(
@@ -490,7 +499,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
       }
       return baseStyle;
     },
-    [selectedRowIndex]
+    [selectedRowIndex],
   );
 
   const MemoizedTableRow = useMemo(
@@ -506,7 +515,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
           />
         );
       }),
-    [handleRowClick, getRowStyle]
+    [handleRowClick, getRowStyle],
   );
 
   const cellStyleCache = useMemo(() => new Map<string, React.CSSProperties>(), []);
@@ -518,7 +527,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
       }
       return cellStyleCache.get(key);
     },
-    [selectedRowIndex, getCellStyle, cellStyleCache]
+    [selectedRowIndex, getCellStyle, cellStyleCache],
   );
 
   return (
@@ -1111,7 +1120,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.offensiveBoxPlusMinus, thresholds.offensiveBoxPlusMinus, 'offensiveBoxPlusMinus'),
-                      index
+                      index,
                     ),
                     width: columnWidths.smallStats,
                   }}
@@ -1182,7 +1191,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.effectiveFGPercentage, thresholds.effectiveFGPercentage, 'effectiveFGPercentage'),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}
@@ -1195,7 +1204,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.trueShootingPercentage, thresholds.trueShootingPercentage, 'trueShootingPercentage'),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}
@@ -1289,7 +1298,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.offensiveReboundPercentage, thresholds.offensiveReboundPercentage, 'offensiveReboundPercentage'),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}
@@ -1302,7 +1311,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.defensiveReboundPercentage, thresholds.defensiveReboundPercentage, 'defensiveReboundPercentage'),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}
@@ -1442,7 +1451,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.rimPercentage * 100, thresholds.rimPercentage, 'rimPercentage', player.rimAttempts),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}
@@ -1465,7 +1474,7 @@ export default function PlayersAdvancedStats({ initialData }: PlayersAdvancedSta
                   style={{
                     ...getCachedCellStyle(
                       getStatStyle(player.midRangePercentage * 100, thresholds.midRangePercentage, 'midRangePercentage', player.midRangeAttempts),
-                      index
+                      index,
                     ),
                     width: columnWidths.compact,
                   }}

@@ -94,7 +94,7 @@ interface GameStatsProps {
             descriptions: string[];
             athletes: Array<PlayerData>;
             totals: string[];
-          }
+          },
         ];
       }>;
     };
@@ -187,7 +187,6 @@ type PlayerData = {
   stats: string[];
 };
 
-
 const statAbbreviationMap: { [key: string]: string } = {
   MIN: 'minutes',
   PTS: 'points',
@@ -239,9 +238,7 @@ export default function GameStats({ data, league }: GameStatsProps) {
   const getTeamScore = (team: typeof homeTeam) => {
     if (!team) return '0';
 
-    const headerCompetitor = data.header.competitions[0].competitors.find(
-      (c) => c.team.id === team.team.id
-    );
+    const headerCompetitor = data.header.competitions[0].competitors.find((c) => c.team.id === team.team.id);
     if (headerCompetitor?.score) {
       return headerCompetitor.score;
     }
@@ -282,32 +279,16 @@ export default function GameStats({ data, league }: GameStatsProps) {
         <div className="flex-1 flex flex-col md:flex-row items-center gap-2 md:gap-4 md:justify-end">
           <div className="order-1 md:order-1">
             <Link href={`/${league}/${headerAwayTeam?.team.id}`} className="block">
-              {isPreGame 
-                ? (headerAwayTeam?.team.logos && headerAwayTeam.team.logos.length > 0 && (
-                    <Image
-                      src={headerAwayTeam.team.logos[0].href}
-                      alt={headerAwayTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': headerAwayTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ))
-                : awayTeam?.team.logo && (
-                    <Image
-                      src={awayTeam.team.logo}
-                      alt={awayTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': awayTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  )
-              }
+              {headerAwayTeam?.team.logos && headerAwayTeam.team.logos.length > 0 && (
+                <Image
+                  src={headerAwayTeam.team.logos[DARK_COLORED_LOGOS.includes(headerAwayTeam.team.displayName) ? 1 : 0].href}
+                  alt={headerAwayTeam?.team.displayName || ''}
+                  width={64}
+                  height={64}
+                  className="size-14 md:size-16"
+                  unoptimized
+                />
+              )}
             </Link>
           </div>
           <div className="order-2 md:order-2 flex flex-col items-center md:items-end gap-0.5">
@@ -364,32 +345,16 @@ export default function GameStats({ data, league }: GameStatsProps) {
           </div>
           <div className="order-1 md:order-3">
             <Link href={`/${league}/${headerHomeTeam?.team.id}`} className="block">
-              {isPreGame 
-                ? (headerHomeTeam?.team.logos && headerHomeTeam.team.logos.length > 0 && (
-                    <Image
-                      src={headerHomeTeam.team.logos[0].href}
-                      alt={headerHomeTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': headerHomeTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ))
-                : homeTeam?.team.logo && (
-                    <Image
-                      src={homeTeam.team.logo}
-                      alt={homeTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': homeTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  )
-              }
+              {headerHomeTeam?.team.logos && headerHomeTeam.team.logos.length > 0 && (
+                <Image
+                  src={headerHomeTeam.team.logos[DARK_COLORED_LOGOS.includes(headerHomeTeam.team.displayName) ? 1 : 0].href}
+                  alt={headerHomeTeam?.team.displayName || ''}
+                  width={64}
+                  height={64}
+                  className="size-14 md:size-16"
+                  unoptimized
+                />
+              )}
             </Link>
           </div>
         </div>
@@ -399,12 +364,14 @@ export default function GameStats({ data, league }: GameStatsProps) {
       <div className="text-center mt-1 md:mt-0">
         <GameDateTime gameDate={data.header.competitions[0].date} status={data.header.competitions[0].status} />
         <div className="text-sm text-neutral-600 dark:text-neutral-400">
-          <span>{data.gameInfo.venue.fullName} • {data.gameInfo.venue.address.city}, {data.gameInfo.venue.address.state}</span>
+          <span>
+            {data.gameInfo.venue.fullName} • {data.gameInfo.venue.address.city}, {data.gameInfo.venue.address.state}
+          </span>
         </div>
 
         {data.header.competitions[0].broadcasts?.[0] && (
-            <span className="text-xs text-neutral-400">{data.header.competitions[0].broadcasts[0].media.shortName}</span>
-          )}
+          <span className="text-xs text-neutral-400">{data.header.competitions[0].broadcasts[0].media.shortName}</span>
+        )}
       </div>
 
       {/* Predictor Graph for Pre-Game */}
@@ -436,13 +403,11 @@ export default function GameStats({ data, league }: GameStatsProps) {
           <div className="flex justify-between mt-2 text-sm text-neutral-900 dark:text-neutral-100">
             <div className="flex items-center gap-2">
               <Image
-                src={headerAwayTeam?.team.logos[0].href || ''}
+                src={headerAwayTeam?.team.logos[DARK_COLORED_LOGOS.includes(headerAwayTeam?.team.displayName || '') ? 1 : 0]?.href || ''}
                 alt={headerAwayTeam?.team.displayName || ''}
                 width={24}
                 height={24}
-                className={cn('size-6', {
-                  'dark:invert': headerAwayTeam?.team.color === '000000',
-                })}
+                className="size-6"
                 unoptimized
               />
               <span className="font-medium">{headerAwayTeam?.team.displayName}</span>
@@ -450,13 +415,11 @@ export default function GameStats({ data, league }: GameStatsProps) {
             <div className="flex items-center gap-2">
               <span className="font-medium">{headerHomeTeam?.team.displayName}</span>
               <Image
-                src={headerHomeTeam?.team.logos[0].href || ''}
+                src={headerHomeTeam?.team.logos[DARK_COLORED_LOGOS.includes(headerHomeTeam?.team.displayName || '') ? 1 : 0]?.href || ''}
                 alt={headerHomeTeam?.team.displayName || ''}
                 width={24}
                 height={24}
-                className={cn('size-6', {
-                  'dark:invert': headerHomeTeam?.team.color === '000000',
-                })}
+                className="size-6"
                 unoptimized
               />
             </div>
@@ -471,7 +434,8 @@ export default function GameStats({ data, league }: GameStatsProps) {
             const entries = group.standings.entries;
             const hasTeam = entries.some(
               (entry) =>
-                [headerHomeTeam?.team.displayName, headerAwayTeam?.team.displayName].includes(entry.team) || [headerHomeTeam?.team.id, headerAwayTeam?.team.id].includes(entry.id)
+                [headerHomeTeam?.team.displayName, headerAwayTeam?.team.displayName].includes(entry.team) ||
+                [headerHomeTeam?.team.id, headerAwayTeam?.team.id].includes(entry.id),
             );
 
             if (!hasTeam) return null;
@@ -503,15 +467,16 @@ export default function GameStats({ data, league }: GameStatsProps) {
                           entry.team === headerAwayTeam?.team.displayName ||
                           entry.id === headerHomeTeam?.team.id ||
                           entry.id === headerAwayTeam?.team.id;
-                        
-                        const isDarkLogo = DARK_COLORED_LOGOS.some(darkTeam => entry.team && darkTeam.includes(entry.team));
+
+                        const isDarkLogo = DARK_COLORED_LOGOS.some((darkTeam) => entry.team && darkTeam.includes(entry.team));
                         const logoIndex = isDarkLogo ? 1 : 0;
 
                         return (
                           <tr
                             key={entry.id}
                             className={cn('border-b border-neutral-200 dark:border-neutral-800', {
-                              'bg-neutral-50/80 dark:bg-neutral-800 border-l-2  border-neutral-500 dark:border-neutral-950 dark:border-l-neutral-400': isCurrentTeam,
+                              'bg-neutral-50/80 dark:bg-neutral-800 border-l-2  border-neutral-500 dark:border-neutral-950 dark:border-l-neutral-400':
+                                isCurrentTeam,
                             })}
                           >
                             <td className="py-1.5 text-center font-medium text-neutral-800 dark:text-neutral-200">{idx + 1}</td>
@@ -552,97 +517,105 @@ export default function GameStats({ data, league }: GameStatsProps) {
       )}
 
       {/* Quarter by Quarter Scoreboard */}
-      {(data.header.competitions[0].status.type.completed || data.header.competitions[0].status.type.state === 'in') && headerHomeTeam && headerAwayTeam && headerHomeTeam.linescores && headerAwayTeam.linescores && (
-        <div className="w-full max-w-4xl mt-2 overflow-x-auto mb-1 md:mb-0">
-          <div className="flex justify-center">
-            <table className="w-auto border-collapse bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-              <thead>
-                <tr className="bg-neutral-100 dark:bg-neutral-800 text-xs">
-                  <th className="py-1 px-2 text-left font-medium text-neutral-600 dark:text-neutral-400 w-[100px]">Team</th>
-                  {Array.from({ length: Math.min(4, headerHomeTeam.linescores?.length || 4) }).map((_, i) => (
-                    <th key={i} className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-6">
-                      {i + 1}
-                    </th>
-                  ))}
-                  {/* Add OT columns if they exist */}
-                  {headerHomeTeam.linescores && headerHomeTeam.linescores.length > 4 && (
-                    Array.from({ length: headerHomeTeam.linescores.length - 4 }).map((_, i) => (
-                      <th key={`ot${i}`} className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-6">
-                        OT{i + 1}
+      {(data.header.competitions[0].status.type.completed || data.header.competitions[0].status.type.state === 'in') &&
+        headerHomeTeam &&
+        headerAwayTeam &&
+        headerHomeTeam.linescores &&
+        headerAwayTeam.linescores && (
+          <div className="w-full max-w-4xl mt-2 overflow-x-auto mb-1 md:mb-0">
+            <div className="flex justify-center">
+              <table className="w-auto border-collapse bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
+                <thead>
+                  <tr className="bg-neutral-100 dark:bg-neutral-800 text-xs">
+                    <th className="py-1 px-2 text-left font-medium text-neutral-600 dark:text-neutral-400 w-[100px]">Team</th>
+                    {Array.from({ length: Math.min(4, headerHomeTeam.linescores?.length || 4) }).map((_, i) => (
+                      <th key={i} className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-6">
+                        {i + 1}
                       </th>
-                    ))
-                  )}
-                  <th className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-7 border-l border-neutral-200 dark:border-neutral-800">T</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 text-xs">
-                {/* Away Team */}
-                <tr>
-                  <td className="py-1 px-2 font-medium text-neutral-900 dark:text-neutral-100">
-                    <div className="flex items-center gap-1">
-                      <Image
-                        src={awayTeam?.team.logo || headerAwayTeam.team.logos[0].href}
-                        alt={headerAwayTeam.team.displayName}
-                        width={16}
-                        height={16}
-                        className={cn('size-4', {
-                          'dark:invert': headerAwayTeam.team.color === '000000',
-                        })}
-                        unoptimized
-                      />
-                      <span className="text-xs">{headerAwayTeam.team.abbreviation || headerAwayTeam.team.displayName.split(' ')[0]}</span>
-                    </div>
-                  </td>
-                  {headerAwayTeam.linescores?.map((score, i) => (
-                    <td key={i} className="py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums font-medium text-xs">
-                      {score.displayValue || '0'}
+                    ))}
+                    {/* Add OT columns if they exist */}
+                    {headerHomeTeam.linescores &&
+                      headerHomeTeam.linescores.length > 4 &&
+                      Array.from({ length: headerHomeTeam.linescores.length - 4 }).map((_, i) => (
+                        <th key={`ot${i}`} className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-6">
+                          OT{i + 1}
+                        </th>
+                      ))}
+                    <th className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-7 border-l border-neutral-200 dark:border-neutral-800">
+                      T
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 text-xs">
+                  {/* Away Team */}
+                  <tr>
+                    <td className="py-1 px-2 font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="flex items-center gap-1">
+                        <Image
+                          src={headerAwayTeam.team.logos[DARK_COLORED_LOGOS.includes(headerAwayTeam.team.displayName) ? 1 : 0].href}
+                          alt={headerAwayTeam.team.displayName}
+                          width={16}
+                          height={16}
+                          className="size-4"
+                          unoptimized
+                        />
+                        <span className="text-xs">{headerAwayTeam.team.abbreviation || headerAwayTeam.team.displayName.split(' ')[0]}</span>
+                      </div>
                     </td>
-                  ))}
-                  <td
-                    className={cn('py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800', {
-                      'font-extrabold': isAwayWinner,
-                      'font-normal': !isAwayWinner,
-                    })}
-                  >
-                    {awayScore}
-                  </td>
-                </tr>
-                {/* Home Team */}
-                <tr>
-                  <td className="py-1 px-2 font-medium text-neutral-900 dark:text-neutral-100">
-                    <div className="flex items-center gap-1">
-                      <Image
-                        src={homeTeam?.team.logo || headerHomeTeam.team.logos[0].href}
-                        alt={headerHomeTeam.team.displayName}
-                        width={16}
-                        height={16}
-                        className={cn('size-4', {
-                          'dark:invert': headerHomeTeam.team.color === '000000',
-                        })}
-                        unoptimized
-                      />
-                      <span className="text-xs">{headerHomeTeam.team.abbreviation || headerHomeTeam.team.displayName.split(' ')[0]}</span>
-                    </div>
-                  </td>
-                  {headerHomeTeam.linescores?.map((score, i) => (
-                    <td key={i} className="py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums font-medium text-xs">
-                      {score.displayValue || '0'}
+                    {headerAwayTeam.linescores?.map((score, i) => (
+                      <td key={i} className="py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums font-medium text-xs">
+                        {score.displayValue || '0'}
+                      </td>
+                    ))}
+                    <td
+                      className={cn(
+                        'py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800',
+                        {
+                          'font-extrabold': isAwayWinner,
+                          'font-normal': !isAwayWinner,
+                        },
+                      )}
+                    >
+                      {awayScore}
                     </td>
-                  ))}
-                  <td
-                    className={cn('py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800', {
-                      'font-extrabold': isHomeWinner,
-                      'font-normal': !isHomeWinner,
-                    })}
-                  >
-                    {homeScore}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </tr>
+                  {/* Home Team */}
+                  <tr>
+                    <td className="py-1 px-2 font-medium text-neutral-900 dark:text-neutral-100">
+                      <div className="flex items-center gap-1">
+                        <Image
+                          src={headerHomeTeam.team.logos[DARK_COLORED_LOGOS.includes(headerHomeTeam.team.displayName) ? 1 : 0].href}
+                          alt={headerHomeTeam.team.displayName}
+                          width={16}
+                          height={16}
+                          className="size-4"
+                          unoptimized
+                        />
+                        <span className="text-xs">{headerHomeTeam.team.abbreviation || headerHomeTeam.team.displayName.split(' ')[0]}</span>
+                      </div>
+                    </td>
+                    {headerHomeTeam.linescores?.map((score, i) => (
+                      <td key={i} className="py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums font-medium text-xs">
+                        {score.displayValue || '0'}
+                      </td>
+                    ))}
+                    <td
+                      className={cn(
+                        'py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800',
+                        {
+                          'font-extrabold': isHomeWinner,
+                          'font-normal': !isHomeWinner,
+                        },
+                      )}
+                    >
+                      {homeScore}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 
@@ -717,10 +690,15 @@ export default function GameStats({ data, league }: GameStatsProps) {
           'h-[32px]': isInactive || isDNP,
         })}
       >
-        <td className={cn("sticky left-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50 w-[100px] xs:w-[120px] sm:w-[140px] lg:w-[160px] xl:w-[110px] 2xl:w-[180px]", {
-          "py-0.5 pl-1.5 xs:pl-2 sm:pl-3 pr-1": !isInactive && !isDNP,
-          "py-0 pl-1.5 xs:pl-2 sm:pl-3 pr-1": isInactive || isDNP,
-        })}>
+        <td
+          className={cn(
+            'sticky left-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50 w-[100px] xs:w-[120px] sm:w-[140px] lg:w-[160px] xl:w-[110px] 2xl:w-[180px]',
+            {
+              'py-0.5 pl-1.5 xs:pl-2 sm:pl-3 pr-1': !isInactive && !isDNP,
+              'py-0 pl-1.5 xs:pl-2 sm:pl-3 pr-1': isInactive || isDNP,
+            },
+          )}
+        >
           <div className="flex items-center gap-1 sm:gap-2">
             <div
               className={cn('relative shrink-0', {
@@ -731,7 +709,13 @@ export default function GameStats({ data, league }: GameStatsProps) {
               {player.athlete.headshot ? (
                 player.athlete.links?.[0]?.href ? (
                   <Link href={player.athlete.links[0].href} target="_blank" className="block">
-                    <Image src={player.athlete.headshot.href} alt={player.athlete.displayName} fill className="rounded-full object-cover" unoptimized />
+                    <Image
+                      src={player.athlete.headshot.href}
+                      alt={player.athlete.displayName}
+                      fill
+                      className="rounded-full object-cover"
+                      unoptimized
+                    />
                   </Link>
                 ) : (
                   <Image src={player.athlete.headshot.href} alt={player.athlete.displayName} fill className="rounded-full object-cover" unoptimized />
@@ -744,7 +728,7 @@ export default function GameStats({ data, league }: GameStatsProps) {
                     {
                       'text-[8px] xs:text-[10px] sm:text-xs font-medium text-neutral-600 dark:text-neutral-400': !isInactive && !isDNP,
                       'text-[8px] xs:text-[9px] sm:text-[10px] font-medium text-neutral-600 dark:text-neutral-400': isInactive || isDNP,
-                    }
+                    },
                   )}
                 >
                   {getInitials(player.athlete.displayName)}
@@ -757,18 +741,20 @@ export default function GameStats({ data, league }: GameStatsProps) {
                   <Link
                     href={player.athlete.links[0].href}
                     target="_blank"
-                    className={cn("text-neutral-900 dark:text-neutral-100 truncate no-underline hover:text-neutral-600 dark:hover:text-neutral-300", {
-                      "font-medium text-[10px] xs:text-xs sm:text-sm": !isInactive && !isDNP,
-                      "font-normal text-[9px] xs:text-[10px] sm:text-xs": isInactive || isDNP,
+                    className={cn('text-neutral-900 dark:text-neutral-100 truncate no-underline hover:text-neutral-600 dark:hover:text-neutral-300', {
+                      'font-medium text-[10px] xs:text-xs sm:text-sm': !isInactive && !isDNP,
+                      'font-normal text-[9px] xs:text-[10px] sm:text-xs': isInactive || isDNP,
                     })}
                   >
                     {player.athlete.displayName}
                   </Link>
                 ) : (
-                  <span className={cn("text-neutral-900 dark:text-neutral-100 truncate", {
-                    "font-medium text-[10px] xs:text-xs sm:text-sm": !isInactive && !isDNP,
-                    "font-normal text-[9px] xs:text-[10px] sm:text-xs": isInactive || isDNP,
-                  })}>
+                  <span
+                    className={cn('text-neutral-900 dark:text-neutral-100 truncate', {
+                      'font-medium text-[10px] xs:text-xs sm:text-sm': !isInactive && !isDNP,
+                      'font-normal text-[9px] xs:text-[10px] sm:text-xs': isInactive || isDNP,
+                    })}
+                  >
                     {player.athlete.displayName}
                   </span>
                 )}
@@ -788,7 +774,10 @@ export default function GameStats({ data, league }: GameStatsProps) {
           </div>
         </td>
         {isInactive || isDNP ? (
-          <td colSpan={statHeaders.length} className="text-xs text-neutral-500 text-left pl-2 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50">
+          <td
+            colSpan={statHeaders.length}
+            className="text-xs text-neutral-500 text-left pl-2 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50"
+          >
             {isDNP ? 'DNP' : 'Inactive'}
           </td>
         ) : (
@@ -820,13 +809,13 @@ export default function GameStats({ data, league }: GameStatsProps) {
       const aPoints = parseInt(a.stats[pointsIndex]) || 0;
       const bPoints = parseInt(b.stats[pointsIndex]) || 0;
       if (aPoints !== bPoints) {
-        return bPoints - aPoints; 
+        return bPoints - aPoints;
       }
 
       const aAssists = parseInt(a.stats[assistsIndex]) || 0;
       const bAssists = parseInt(b.stats[assistsIndex]) || 0;
       if (aAssists !== bAssists) {
-        return bAssists - aAssists; 
+        return bAssists - aAssists;
       }
 
       const aRebounds = parseInt(a.stats[reboundsIndex]) || 0;
@@ -835,7 +824,9 @@ export default function GameStats({ data, league }: GameStatsProps) {
     };
 
     const activeStarters = players.statistics[0].athletes.filter((p) => p.starter && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
-    const activeBench = players.statistics[0].athletes.filter((p) => !p.starter && !p.didNotPlay && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
+    const activeBench = players.statistics[0].athletes
+      .filter((p) => !p.starter && !p.didNotPlay && !p.stats.every((s) => s === '--'))
+      .sort(sortPlayersByPoints);
 
     const inactivePlayers = isGameOver
       ? players.statistics[0].athletes.filter((p) => p.stats.every((s) => s === '--') && !p.didNotPlay)
@@ -853,156 +844,140 @@ export default function GameStats({ data, league }: GameStatsProps) {
             'justify-end': isHome,
           })}
         >
-          {!isHome && (
-            <Image
-              src={team.team.logo}
-              alt={team.team.displayName}
-              width={20}
-              height={20}
-              className={cn('size-7', {
-                'dark:invert': team.team.color === '000000',
-              })}
-              unoptimized
-            />
-          )}
+          {!isHome && <Image src={team.team.logo} alt={team.team.displayName} width={20} height={20} className="size-7" unoptimized />}
           <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">{team.team.displayName}</h3>
-          {isHome && (
-            <Image
-              src={team.team.logo}
-              alt={team.team.displayName}
-              width={20}
-              height={20}
-              className={cn('size-7', {
-                'dark:invert': team.team.color === '000000',
-              })}
-              unoptimized
-            />
-          )}
+          {isHome && <Image src={team.team.logo} alt={team.team.displayName} width={20} height={20} className="size-7" unoptimized />}
         </div>
 
-        <div className={cn('rounded', 'bg-white dark:bg-neutral-900', 'border border-neutral-200 dark:border-neutral-800')}>
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-neutral-100 dark:bg-neutral-800">
-                <th className="py-1 px-1.5 text-left font-medium text-[10px] xs:text-[11px] sm:text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800 w-[100px] xs:w-[120px] sm:w-[140px] lg:w-[160px] xl:w-[110px] 2xl:w-[180px]">
-                  STARTERS
-                </th>
-                {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
-                  if (header.includes('%')) return null;
-                  return (
-                    <th
-                      key={header}
-                      className="py-0 w-[22px] xs:w-[25px] sm:w-[28px] lg:w-[32px] xl:w-[10px] 2xl:w-[10px] text-center font-medium text-[10px] xs:text-[11px] sm:text-xs xl:text-[10px] 2xl:text-xs text-neutral-600 dark:text-neutral-400 px-0.5 xl:-mx-0.5 2xl:mx-0"
-                      title={statDescriptions[statHeaders.indexOf(header)]}
-                    >
-                      {header}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {/* Active Starters */}
-              {activeStarters.map((player) => renderPlayer(player, isHome))}
-              {/* Add spacers for starters if needed */}
-              {Array.from({ length: starterSpacers }).map((_, i) => (
-                <tr key={`starter-spacer-${i}`}>
-                  <td colSpan={statHeaders.length + 1} className="h-[37px]"></td>
+        <div className="overflow-x-auto">
+          <div
+            className={cn('rounded', 'bg-white dark:bg-neutral-900', 'border border-neutral-200 dark:border-neutral-800', 'inline-block min-w-full')}
+          >
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-neutral-100 dark:bg-neutral-800">
+                  <th className="py-1 px-1.5 text-left font-medium text-[10px] xs:text-[11px] sm:text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800 w-[100px] xs:w-[120px] sm:w-[140px] lg:w-[160px] xl:w-[110px] 2xl:w-[180px]">
+                    STARTERS
+                  </th>
+                  {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
+                    if (header.includes('%')) return null;
+                    return (
+                      <th
+                        key={header}
+                        className="py-0 w-[22px] xs:w-[25px] sm:w-[28px] lg:w-[32px] xl:w-[10px] 2xl:w-[10px] text-center font-medium text-[10px] xs:text-[11px] sm:text-xs xl:text-[10px] 2xl:text-xs text-neutral-600 dark:text-neutral-400 px-0.5 xl:-mx-0.5 2xl:mx-0"
+                        title={statDescriptions[statHeaders.indexOf(header)]}
+                      >
+                        {header}
+                      </th>
+                    );
+                  })}
                 </tr>
-              ))}
+              </thead>
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                {/* Active Starters */}
+                {activeStarters.map((player) => renderPlayer(player, isHome))}
+                {/* Add spacers for starters if needed */}
+                {Array.from({ length: starterSpacers }).map((_, i) => (
+                  <tr key={`starter-spacer-${i}`}>
+                    <td colSpan={statHeaders.length + 1} className="h-[37px]"></td>
+                  </tr>
+                ))}
 
-              {/* Bench Header */}
-              <tr>
-                <td
-                  colSpan={statHeaders.length + 1}
-                  className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
-                >
-                  BENCH
-                </td>
-              </tr>
-
-              {/* Active Bench */}
-              {activeBench.map((player) => renderPlayer(player, isHome))}
-              {Array.from({ length: benchSpacers }).map((_, i) => (
-                <tr key={`bench-spacer-${i}`} className="h-[37px]">
-                  <td className="sticky left-0 bg-white dark:bg-neutral-900 py-0.5 pl-3 pr-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 shrink-0"></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="h-4"></div>
-                        <div className="h-3"></div>
-                      </div>
-                    </div>
+                {/* Bench Header */}
+                <tr>
+                  <td
+                    colSpan={statHeaders.length + 1}
+                    className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
+                  >
+                    BENCH
                   </td>
-                  {Array.from({ length: statHeaders.length }).map((_, j) => (
-                    <td key={j}></td>
-                  ))}
                 </tr>
-              ))}
 
-              {/* Team Totals */}
-              <tr className="bg-neutral-100 dark:bg-neutral-800 font-medium border-t-2 border-neutral-300 dark:border-neutral-700">
-                <td className="py-2 px-2 text-left text-sm text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-100 dark:bg-neutral-800 font-bold">TOTALS</td>
-                {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
-                  const statName = statAbbreviationMap[header];
-                  if (header === 'PTS') {
-                    const totals = players.statistics[0].totals;
+                {/* Active Bench */}
+                {activeBench.map((player) => renderPlayer(player, isHome))}
+                {Array.from({ length: benchSpacers }).map((_, i) => (
+                  <tr key={`bench-spacer-${i}`} className="h-[37px]">
+                    <td className="sticky left-0 bg-white dark:bg-neutral-900 py-0.5 pl-3 pr-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 shrink-0"></div>
+                        <div className="min-w-0 flex-1">
+                          <div className="h-4"></div>
+                          <div className="h-3"></div>
+                        </div>
+                      </div>
+                    </td>
+                    {Array.from({ length: statHeaders.length }).map((_, j) => (
+                      <td key={j}></td>
+                    ))}
+                  </tr>
+                ))}
+
+                {/* Team Totals */}
+                <tr className="bg-neutral-100 dark:bg-neutral-800 font-medium border-t-2 border-neutral-300 dark:border-neutral-700">
+                  <td className="py-2 px-2 text-left text-sm text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-100 dark:bg-neutral-800 font-bold">
+                    TOTALS
+                  </td>
+                  {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
+                    const statName = statAbbreviationMap[header];
+                    if (header === 'PTS') {
+                      const totals = players.statistics[0].totals;
+                      return (
+                        <td
+                          key={header}
+                          className="py-2 w-[40px] min-w-[40px] max-w-[40px] text-center text-sm tabular-nums text-neutral-900 dark:text-neutral-100 font-bold px-0.5 overflow-hidden"
+                        >
+                          {totals[totals.length - 1] || ''}
+                        </td>
+                      );
+                    }
+                    const stat = team.statistics.find((s) => s.name === statName);
                     return (
                       <td
                         key={header}
                         className="py-2 w-[40px] min-w-[40px] max-w-[40px] text-center text-sm tabular-nums text-neutral-900 dark:text-neutral-100 font-bold px-0.5 overflow-hidden"
                       >
-                        {totals[totals.length - 1] || ''}
+                        {stat?.displayValue || ''}
                       </td>
                     );
-                  }
-                  const stat = team.statistics.find((s) => s.name === statName);
-                  return (
-                    <td
-                      key={header}
-                      className="py-2 w-[40px] min-w-[40px] max-w-[40px] text-center text-sm tabular-nums text-neutral-900 dark:text-neutral-100 font-bold px-0.5 overflow-hidden"
-                    >
-                      {stat?.displayValue || ''}
-                    </td>
-                  );
-                })}
-              </tr>
+                  })}
+                </tr>
 
-              <tr>
-                <td colSpan={statHeaders.length + 1} className="h-0 border-t-2 border-neutral-300 dark:border-neutral-700"></td>
-              </tr>
+                <tr>
+                  <td colSpan={statHeaders.length + 1} className="h-0 border-t-2 border-neutral-300 dark:border-neutral-700"></td>
+                </tr>
 
-              {/* Inactive Players */}
-              {inactivePlayers.length > 0 && (
-                <>
-                  <tr>
-                    <td
-                      colSpan={statHeaders.length + 1}
-                      className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
-                    >
-                      INACTIVE
-                    </td>
-                  </tr>
-                  {inactivePlayers.map((player) => renderPlayer(player, isHome))}
-                </>
-              )}
+                {/* Inactive Players */}
+                {inactivePlayers.length > 0 && (
+                  <>
+                    <tr>
+                      <td
+                        colSpan={statHeaders.length + 1}
+                        className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
+                      >
+                        INACTIVE
+                      </td>
+                    </tr>
+                    {inactivePlayers.map((player) => renderPlayer(player, isHome))}
+                  </>
+                )}
 
-              {/* DNP Players */}
-              {dnpPlayers.length > 0 && (
-                <>
-                  <tr>
-                    <td
-                      colSpan={statHeaders.length + 1}
-                      className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
-                    >
-                      DID NOT PLAY
-                    </td>
-                  </tr>
-                  {dnpPlayers.map((player) => renderPlayer(player, isHome))}
-                </>
-              )}
-            </tbody>
-          </table>
+                {/* DNP Players */}
+                {dnpPlayers.length > 0 && (
+                  <>
+                    <tr>
+                      <td
+                        colSpan={statHeaders.length + 1}
+                        className="py-1 px-2 text-left font-medium text-xs text-neutral-600 dark:text-neutral-400 sticky left-0 bg-neutral-100 dark:bg-neutral-800"
+                      >
+                        DID NOT PLAY
+                      </td>
+                    </tr>
+                    {dnpPlayers.map((player) => renderPlayer(player, isHome))}
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );
@@ -1016,12 +991,8 @@ export default function GameStats({ data, league }: GameStatsProps) {
 
       {/* Box Score Content */}
       <div className="xl:grid min-[1450px]:grid-cols-2 gap-4 xl:gap-0 2xl:gap-12 py-1">
-        <div className="mb-8 xl:mb-0 xl:pr-1 2xl:pr-0">
-          {renderTeamSection(awayPlayers, awayTeam, false)}
-        </div>
-        <div className="xl:pl-1 2xl:pl-0">
-          {renderTeamSection(homePlayers, homeTeam, true)}
-        </div>
+        <div className="mb-8 xl:mb-0 xl:pr-1 2xl:pr-0">{renderTeamSection(awayPlayers, awayTeam, false)}</div>
+        <div className="xl:pl-1 2xl:pl-0">{renderTeamSection(homePlayers, homeTeam, true)}</div>
       </div>
 
       {/* Box Score Link */}

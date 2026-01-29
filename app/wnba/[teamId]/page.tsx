@@ -3,6 +3,7 @@ import WNBATeamSchedule from '@/components/WNBATeamSchedule';
 import fetchWNBATeamSchedule from '@/utils/WNBA/fetchTeamSchedule';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import { Metadata } from 'next';
 import WNBATeamPlayerStats from '@/components/WNBATeamPlayerStats';
 import TeamSelector from '@/components/TeamSelector';
@@ -39,15 +40,17 @@ export default async function WNBATeamPage({ params }: PageProps) {
       <section className="w-full mx-auto p-2 md:p-3 xl:p-2 2xl:p-6 border-r border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <Image
-            src={teamData?.team?.logo || teamData?.team?.logos?.[0]?.href || 'https://a.espncdn.com/i/teamlogos/leagues/500/wnba.png'}
+            src={
+              teamData?.team?.logo ||
+              teamData?.team?.logos?.[DARK_COLORED_LOGOS.includes(teamData.team.displayName) ? 1 : 0]?.href ||
+              'https://a.espncdn.com/i/teamlogos/leagues/500/wnba.png'
+            }
             alt={`${teamData.team.displayName} logo`}
             unoptimized
             priority
             width={600}
             height={600}
-            className={cn('size-14', {
-              'dark:invert': teamData.team.color === '000000',
-            })}
+            className="size-14"
           />
           <div className="flex flex-col flex-1">
             <div className="flex items-center gap-2">

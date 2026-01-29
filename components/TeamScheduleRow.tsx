@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
+import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 import { useRouter } from 'next/navigation';
 import { useState, useLayoutEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -72,11 +73,11 @@ interface ScheduleRowProps {
 // Format date outside of component to avoid recalculation
 function formatGameDate(dateString: string) {
   const gameDate = new Date(dateString);
-  
+
   const shortDate = gameDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 
   const formattedDate = gameDate
@@ -104,19 +105,19 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
   const logoRef = useRef<HTMLDivElement>(null);
   const teamRef = useRef<HTMLDivElement>(null);
 
-  const { 
-    competition, 
-    currentTeam, 
-    opponent, 
-    currentScore, 
-    opponentScore, 
-    isCompleted, 
-    isPostponed, 
-    isWinner, 
-    isNeutralSite, 
+  const {
+    competition,
+    currentTeam,
+    opponent,
+    currentScore,
+    opponentScore,
+    isCompleted,
+    isPostponed,
+    isWinner,
+    isNeutralSite,
     opponentLogo,
     dateInfo,
-    isPreseason
+    isPreseason,
   } = useMemo(() => {
     const competition = game.competitions[0];
     const currentTeam = competition.competitors.find((team) => team.team.id === teamId);
@@ -132,24 +133,27 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
     const isNeutralSite = competition.neutralSite ?? false;
     const isPreseason = game.seasonType.type === 1;
 
+    // Look up team in allTeamsData for correct logo (same as rankings)
+    const teamFromData = allTeamsData.find((t) => t.id === opponent.team.id);
     const logoIndex = DARK_COLORED_LOGOS.includes(opponent.team.displayName) ? 1 : 0;
-    const opponentLogo = opponent.team.logos?.[logoIndex]?.href;
-    
+    // Use allTeamsData logo if available, otherwise fall back to API logo
+    const opponentLogo = teamFromData?.logos?.[logoIndex]?.href ?? opponent.team.logos?.[logoIndex]?.href;
+
     const dateInfo = formatGameDate(game.date);
 
-    return { 
-      competition, 
-      currentTeam, 
-      opponent, 
-      currentScore, 
-      opponentScore, 
-      isCompleted, 
-      isPostponed, 
-      isWinner, 
-      isNeutralSite, 
+    return {
+      competition,
+      currentTeam,
+      opponent,
+      currentScore,
+      opponentScore,
+      isCompleted,
+      isPostponed,
+      isWinner,
+      isNeutralSite,
       opponentLogo,
       dateInfo,
-      isPreseason
+      isPreseason,
     };
   }, [game, teamId]);
 
@@ -194,7 +198,9 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
       </span>
       <div>
         <span className="font-semibold break-words">{opponent.team.location}</span>{' '}
-        <span className="font-normal text-neutral-500 dark:text-neutral-400 break-words">{opponent.team.displayName.replace(opponent.team.location, '').trim()}</span>
+        <span className="font-normal text-neutral-500 dark:text-neutral-400 break-words">
+          {opponent.team.displayName.replace(opponent.team.location, '').trim()}
+        </span>
       </div>
     </Link>
   );
@@ -223,8 +229,8 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
               {getLocationText()}
             </span>
             <div ref={logoRef} className="size-5">
-              {!mounted && (
-                opponentLogo ? (
+              {!mounted &&
+                (opponentLogo ? (
                   <Image src={opponentLogo} alt={''} width={20} height={20} className="size-5" priority unoptimized />
                 ) : (
                   <div className="size-5 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-full">
@@ -232,8 +238,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
                       {opponent.team.abbreviation?.slice(0, 2) || opponent.team.location?.slice(0, 2)}
                     </span>
                   </div>
-                )
-              )}
+                ))}
             </div>
             <div ref={teamRef} className="ml-[0.45rem] lg:max-w-[250px] min-w-0 leading-tight flex items-center flex-1">
               {!mounted && (
@@ -248,7 +253,9 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
                   </span>
                   <div>
                     <span className="font-semibold break-words">{opponent.team.location}</span>{' '}
-                    <span className="font-normal text-neutral-500 dark:text-neutral-400 break-words">{opponent.team.displayName.replace(opponent.team.location, '').trim()}</span>
+                    <span className="font-normal text-neutral-500 dark:text-neutral-400 break-words">
+                      {opponent.team.displayName.replace(opponent.team.location, '').trim()}
+                    </span>
                   </div>
                 </>
               )}
@@ -261,9 +268,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
           </div>
           <div className="flex flex-row-reverse justify-end min-[450px]:flex-row items-center shrink-0 gap-3">
             {dateInfo && isCompleted && (
-              <span className="text-neutral-500 dark:text-neutral-400 text-xs mr-3 tabular-nums">
-                {dateInfo.shortDate}
-              </span>
+              <span className="text-neutral-500 dark:text-neutral-400 text-xs mr-3 tabular-nums">{dateInfo.shortDate}</span>
             )}
             {isCompleted ? (
               <>
@@ -281,9 +286,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
             ) : isPostponed ? (
               <p className="text-neutral-600 dark:text-neutral-400 font-medium">Postponed</p>
             ) : (
-              <p className="text-neutral-700 dark:text-neutral-300">
-                {dateInfo?.formattedDate}
-              </p>
+              <p className="text-neutral-700 dark:text-neutral-300">{dateInfo?.formattedDate}</p>
             )}
           </div>
         </div>

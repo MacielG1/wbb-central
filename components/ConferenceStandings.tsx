@@ -93,7 +93,14 @@ export default function ConferenceStandings({ conference, standings, league, cur
                       <div className="rounded-full flex items-center justify-center w-8 h-8 overflow-hidden shrink-0">
                         {team.team.logos && team.team.logos[logoIndex] && (
                           <Link href={`/${league}/${team.team.id}`}>
-                            <Image src={team.team.logos[logoIndex].href} alt={''} className="size-8 object-contain" width={80} height={80} unoptimized />
+                            <Image
+                              src={team.team.logos[logoIndex].href}
+                              alt={''}
+                              className="size-8 object-contain"
+                              width={80}
+                              height={80}
+                              unoptimized
+                            />
                           </Link>
                         )}
                       </div>

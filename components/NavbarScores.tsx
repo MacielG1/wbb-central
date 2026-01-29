@@ -138,7 +138,9 @@ export default function NavbarScores({ data }: Props) {
       return <span className="text-xs text-neutral-400 text-right w-16 ">{record}</span>;
     }
 
-    return <span className={`text-sm text-right w-8 ${gameStatus === 'post' && competitor.winner ? 'font-bold' : 'font-[50]'}`}>{competitor.score}</span>;
+    return (
+      <span className={`text-sm text-right w-8 ${gameStatus === 'post' && competitor.winner ? 'font-bold' : 'font-[50]'}`}>{competitor.score}</span>
+    );
   }
 
   return (
@@ -148,7 +150,10 @@ export default function NavbarScores({ data }: Props) {
           {/* Left scroll button */}
           <button
             onClick={() => scroll('left')}
-            className={cn('bg-neutral-900 hover:bg-neutral-800 p-1 rounded-full transition duration-200 cursor-pointer', !canScrollLeft && 'opacity-0 pointer-events-none')}
+            className={cn(
+              'bg-neutral-900 hover:bg-neutral-800 p-1 rounded-full transition duration-200 cursor-pointer',
+              !canScrollLeft && 'opacity-0 pointer-events-none'
+            )}
           >
             <ChevronLeft className="text-white size-5 pr-0.5" />
           </button>
@@ -181,16 +186,7 @@ export default function NavbarScores({ data }: Props) {
                               <Tooltip>
                                 <TooltipTrigger asChild className="cursor-pointer">
                                   <div className="size-6 shrink-0">
-                                    <Image
-                                      src={awayTeam.team.logo}
-                                      alt={''}
-                                      width={18}
-                                      height={18}
-                                      className={cn('min-w-[1.1rem] mr-2', {
-                                        'dark:invert': awayTeam.team.color === '000000',
-                                      })}
-                                      unoptimized
-                                    />
+                                    <Image src={awayTeam.team.logo} alt={''} width={18} height={18} className="min-w-[1.1rem] mr-2" unoptimized />
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="p-1 text-sm">
@@ -203,10 +199,14 @@ export default function NavbarScores({ data }: Props) {
                             <Tooltip>
                               <TooltipTrigger asChild className="cursor-pointer">
                                 <span className="text-sm flex gap-1 break-words min-w-0">
-                                  <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isAwayTeamFavorite && 'text-[#bc7200]')}>
+                                  <span
+                                    className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isAwayTeamFavorite && 'text-[#bc7200]')}
+                                  >
                                     {awayTeam.curatedRank?.current && awayTeam.curatedRank.current !== 99 ? `${awayTeam.curatedRank.current} ` : ''}
                                   </span>
-                                  <span className={cn('break-all text-[0.8rem] truncate', isAwayTeamFavorite && 'text-[#bc7200]')}>{awayTeam.team.shortDisplayName}</span>
+                                  <span className={cn('break-all text-[0.8rem] truncate', isAwayTeamFavorite && 'text-[#bc7200]')}>
+                                    {awayTeam.team.shortDisplayName}
+                                  </span>
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="p-1 text-sm">
@@ -226,16 +226,7 @@ export default function NavbarScores({ data }: Props) {
                               <Tooltip>
                                 <TooltipTrigger asChild className="cursor-pointer">
                                   <div className="size-6 shrink-0">
-                                    <Image
-                                      src={homeTeam.team.logo}
-                                      alt={''}
-                                      width={18}
-                                      height={18}
-                                      className={cn('min-w-[1.1rem] mr-2', {
-                                        'dark:invert': homeTeam.team.color === '000000',
-                                      })}
-                                      unoptimized
-                                    />
+                                    <Image src={homeTeam.team.logo} alt={''} width={18} height={18} className="min-w-[1.1rem] mr-2" unoptimized />
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="p-1 text-sm">
@@ -248,10 +239,14 @@ export default function NavbarScores({ data }: Props) {
                             <Tooltip>
                               <TooltipTrigger asChild className="cursor-pointer">
                                 <span className="text-sm flex gap-1 break-words min-w-0">
-                                  <span className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isHomeTeamFavorite && 'text-[#bc7200]')}>
+                                  <span
+                                    className={cn('font-semibold text-neutral-400 text-[0.7rem] shrink-0', isHomeTeamFavorite && 'text-[#bc7200]')}
+                                  >
                                     {homeTeam.curatedRank?.current && homeTeam.curatedRank.current !== 99 ? `${homeTeam.curatedRank.current} ` : ''}
                                   </span>
-                                  <span className={cn('break-all text-[0.8rem] truncate', isHomeTeamFavorite && 'text-[#bc7200]')}>{homeTeam.team.shortDisplayName}</span>
+                                  <span className={cn('break-all text-[0.8rem] truncate', isHomeTeamFavorite && 'text-[#bc7200]')}>
+                                    {homeTeam.team.shortDisplayName}
+                                  </span>
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent className="p-1 text-sm">
@@ -271,7 +266,10 @@ export default function NavbarScores({ data }: Props) {
           {/* Right scroll button */}
           <button
             onClick={() => scroll('right')}
-            className={cn('bg-neutral-900 hover:bg-neutral-800 p-1 rounded-full transition duration-200 cursor-pointer', !canScrollRight && 'opacity-0 pointer-events-none')}
+            className={cn(
+              'bg-neutral-900 hover:bg-neutral-800 p-1 rounded-full transition duration-200 cursor-pointer',
+              !canScrollRight && 'opacity-0 pointer-events-none'
+            )}
           >
             <ChevronRight className="text-white size-5 pl-0.5" />
           </button>

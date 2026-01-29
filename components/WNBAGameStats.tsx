@@ -291,7 +291,10 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
   // Helper function to safely get team logo URL
   const getTeamLogoUrl = (team: any) => {
     if (team?.team?.logo) return team.team.logo;
-    if (team?.team?.logos && team.team.logos.length > 0) return team.team.logos[0].href;
+    if (team?.team?.logos && team.team.logos.length > 0) {
+      const logoIndex = DARK_COLORED_LOGOS.includes(team.team.displayName) ? 1 : 0;
+      return team.team.logos[logoIndex]?.href;
+    }
     return undefined;
   };
 
@@ -326,9 +329,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
   const getTeamScore = (team: typeof homeTeam) => {
     if (!team) return '0';
 
-    const headerCompetitor = data.header.competitions[0].competitors.find(
-      (c) => c.team.id === team.team.id
-    );
+    const headerCompetitor = data.header.competitions[0].competitors.find((c) => c.team.id === team.team.id);
     if (headerCompetitor?.score) {
       return headerCompetitor.score;
     }
@@ -370,39 +371,35 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
         <div className="flex-1 flex flex-col md:flex-row items-center gap-2 md:gap-4 md:justify-end">
           <div className="order-1 md:order-1">
             <Link href={`/${league}/${headerAwayTeam?.team.id}`} className="block">
-              {isPreGame
-                ? (getTeamLogoUrl(headerAwayTeam) ? (
-                    <Image
-                      src={getTeamLogoUrl(headerAwayTeam)}
-                      alt={headerAwayTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': headerAwayTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
-                      {getTeamInitial(headerAwayTeam)}
-                    </div>
-                  ))
-                : (getTeamLogoUrl(awayTeam) ? (
-                    <Image
-                      src={getTeamLogoUrl(awayTeam)}
-                      alt={awayTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': awayTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
-                      {getTeamInitial(awayTeam || headerAwayTeam)}
-                    </div>
-                  ))}
+              {isPreGame ? (
+                getTeamLogoUrl(headerAwayTeam) ? (
+                  <Image
+                    src={getTeamLogoUrl(headerAwayTeam)}
+                    alt={headerAwayTeam?.team.displayName || ''}
+                    width={64}
+                    height={64}
+                    className="size-14 md:size-16"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
+                    {getTeamInitial(headerAwayTeam)}
+                  </div>
+                )
+              ) : getTeamLogoUrl(awayTeam) ? (
+                <Image
+                  src={getTeamLogoUrl(awayTeam)}
+                  alt={awayTeam?.team.displayName || ''}
+                  width={64}
+                  height={64}
+                  className="size-14 md:size-16"
+                  unoptimized
+                />
+              ) : (
+                <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
+                  {getTeamInitial(awayTeam || headerAwayTeam)}
+                </div>
+              )}
             </Link>
           </div>
           <div className="order-2 md:order-2 flex flex-col items-center md:items-end gap-0.5">
@@ -415,7 +412,8 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
             {headerAwayTeam?.record && (
               <div className="text-xs text-neutral-600 dark:text-neutral-400 text-center md:text-right">
                 {headerAwayTeam.record.find((r) => r.type === 'total')?.summary}
-                {headerAwayTeam.record.find((r) => r.type === 'vsconf')?.summary && ` • ${headerAwayTeam.record.find((r) => r.type === 'vsconf')?.summary}`}
+                {headerAwayTeam.record.find((r) => r.type === 'vsconf')?.summary &&
+                  ` • ${headerAwayTeam.record.find((r) => r.type === 'vsconf')?.summary}`}
               </div>
             )}
           </div>
@@ -455,45 +453,42 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
             {headerHomeTeam?.record && (
               <div className="text-xs text-neutral-600 dark:text-neutral-400 text-center md:text-left">
                 {headerHomeTeam.record.find((r) => r.type === 'total')?.summary}
-                {headerHomeTeam.record.find((r) => r.type === 'vsconf')?.summary && ` • ${headerHomeTeam.record.find((r) => r.type === 'vsconf')?.summary}`}
+                {headerHomeTeam.record.find((r) => r.type === 'vsconf')?.summary &&
+                  ` • ${headerHomeTeam.record.find((r) => r.type === 'vsconf')?.summary}`}
               </div>
             )}
           </div>
           <div className="order-1 md:order-3">
             <Link href={`/${league}/${headerHomeTeam?.team.id}`} className="block">
-              {isPreGame
-                ? (getTeamLogoUrl(headerHomeTeam) ? (
-                    <Image
-                      src={getTeamLogoUrl(headerHomeTeam)}
-                      alt={headerHomeTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': headerHomeTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
-                      {getTeamInitial(headerHomeTeam)}
-                    </div>
-                  ))
-                : (getTeamLogoUrl(homeTeam) ? (
-                    <Image
-                      src={getTeamLogoUrl(homeTeam)}
-                      alt={homeTeam?.team.displayName || ''}
-                      width={64}
-                      height={64}
-                      className={cn('size-14 md:size-16', {
-                        'dark:invert': homeTeam?.team.color === '000000',
-                      })}
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
-                      {getTeamInitial(homeTeam || headerHomeTeam)}
-                    </div>
-                  ))}
+              {isPreGame ? (
+                getTeamLogoUrl(headerHomeTeam) ? (
+                  <Image
+                    src={getTeamLogoUrl(headerHomeTeam)}
+                    alt={headerHomeTeam?.team.displayName || ''}
+                    width={64}
+                    height={64}
+                    className="size-14 md:size-16"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
+                    {getTeamInitial(headerHomeTeam)}
+                  </div>
+                )
+              ) : getTeamLogoUrl(homeTeam) ? (
+                <Image
+                  src={getTeamLogoUrl(homeTeam)}
+                  alt={homeTeam?.team.displayName || ''}
+                  width={64}
+                  height={64}
+                  className="size-14 md:size-16"
+                  unoptimized
+                />
+              ) : (
+                <div className="size-14 md:size-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold">
+                  {getTeamInitial(homeTeam || headerHomeTeam)}
+                </div>
+              )}
             </Link>
           </div>
         </div>
@@ -508,7 +503,9 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
           </span>
         </div>
 
-        {data.header.competitions[0].broadcasts?.[0] && <span className="text-xs text-neutral-400">{data.header.competitions[0].broadcasts[0].media.shortName}</span>}
+        {data.header.competitions[0].broadcasts?.[0] && (
+          <span className="text-xs text-neutral-400">{data.header.competitions[0].broadcasts[0].media.shortName}</span>
+        )}
       </div>
 
       {/* Predictor Graph for Pre-Game */}
@@ -545,9 +542,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                   alt={headerAwayTeam?.team.displayName || ''}
                   width={24}
                   height={24}
-                  className={cn('size-6', {
-                    'dark:invert': headerAwayTeam?.team.color === '000000',
-                  })}
+                  className="size-6"
                   unoptimized
                 />
               ) : (
@@ -565,9 +560,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                   alt={headerHomeTeam?.team.displayName || ''}
                   width={24}
                   height={24}
-                  className={cn('size-6', {
-                    'dark:invert': headerHomeTeam?.team.color === '000000',
-                  })}
+                  className="size-6"
                   unoptimized
                 />
               ) : (
@@ -588,9 +581,9 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
             {data.injuries.map((teamInjuries, idx) => {
               const isAwayTeam = teamInjuries.team.id === headerAwayTeam?.team.id;
               const isHomeTeam = teamInjuries.team.id === headerHomeTeam?.team.id;
-              
+
               if (!isAwayTeam && !isHomeTeam) return null;
-              
+
               // Get team logo safely
               let teamLogoUrl: string | undefined = undefined;
               if (teamInjuries.team.logo) {
@@ -600,23 +593,12 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
               } else if (isHomeTeam && headerHomeTeam?.team.logos?.[0]?.href) {
                 teamLogoUrl = headerHomeTeam.team.logos[0].href;
               }
-              
+
               return (
                 <div key={idx} className="flex flex-col">
                   <div className="flex items-center gap-2 mb-2">
                     {teamLogoUrl ? (
-                      <Image
-                        src={teamLogoUrl}
-                        alt={teamInjuries.team.displayName}
-                        width={24}
-                        height={24}
-                        className={cn('size-6', {
-                          'dark:invert': isAwayTeam 
-                            ? headerAwayTeam?.team.color === '000000'
-                            : headerHomeTeam?.team.color === '000000',
-                        })}
-                        unoptimized
-                      />
+                      <Image src={teamLogoUrl} alt={teamInjuries.team.displayName} width={24} height={24} className="size-6" unoptimized />
                     ) : (
                       <div className="size-6 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center text-[10px] text-neutral-800 dark:text-neutral-200 font-medium">
                         {isAwayTeam ? getTeamInitial(headerAwayTeam) : getTeamInitial(headerHomeTeam)}
@@ -629,28 +611,31 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                       <div key={injuryIdx} className="flex items-start gap-2 pb-2 border-b border-neutral-200 dark:border-neutral-800 last:border-0">
                         <div className="w-8 h-8 relative rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-800 flex-shrink-0">
                           {injury.athlete.headshot?.href ? (
-                            <Image
-                              src={injury.athlete.headshot.href}
-                              alt={injury.athlete.displayName}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
+                            <Image src={injury.athlete.headshot.href} alt={injury.athlete.displayName} fill className="object-cover" unoptimized />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-[8px] text-neutral-600 dark:text-neutral-400">
-                              {injury.athlete.displayName.split(' ').map(n => n[0]).join('')}
+                              {injury.athlete.displayName
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline justify-between">
                             <span className="font-medium text-neutral-800 dark:text-neutral-200">{injury.athlete.displayName}</span>
-                            <span className={cn('text-xs px-1.5 py-0.5 rounded-full', {
-                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300': injury.status === 'Out',
-                              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300': injury.status === 'Day-To-Day',
-                              'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300': injury.status === 'Questionable',
-                              'bg-neutral-100 text-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300': !['Out', 'Day-To-Day', 'Questionable'].includes(injury.status),
-                            })}>
+                            <span
+                              className={cn('text-xs px-1.5 py-0.5 rounded-full', {
+                                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300': injury.status === 'Out',
+                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300': injury.status === 'Day-To-Day',
+                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300': injury.status === 'Questionable',
+                                'bg-neutral-100 text-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300': ![
+                                  'Out',
+                                  'Day-To-Day',
+                                  'Questionable',
+                                ].includes(injury.status),
+                              })}
+                            >
                               {injury.status}
                             </span>
                           </div>
@@ -677,22 +662,25 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
         <div className="w-full max-w-xl mt-4 p-3 border border-neutral-200 dark:border-neutral-800 rounded-xl">
           <h3 className="text-center text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-3">Season Series</h3>
           <div className="text-center text-sm text-neutral-700 dark:text-neutral-300 mb-2">{data.seasonseries[0].summary}</div>
-          
+
           <div className="space-y-2">
             {data.seasonseries[0].events.map((event, eventIdx) => {
-              const homeTeam = event.competitors.find(c => c.homeAway === 'home');
-              const awayTeam = event.competitors.find(c => c.homeAway === 'away');
+              const homeTeam = event.competitors.find((c) => c.homeAway === 'home');
+              const awayTeam = event.competitors.find((c) => c.homeAway === 'away');
               const eventDate = new Date(event.date);
               const isPastGame = eventDate < new Date();
-              
-              const formattedDate = eventDate.toLocaleDateString(undefined, { 
-                month: 'short', 
+
+              const formattedDate = eventDate.toLocaleDateString(undefined, {
+                month: 'short',
                 day: 'numeric',
-                year: eventDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                year: eventDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
               });
-              
+
               return (
-                <div key={eventIdx} className="flex items-center p-2 bg-neutral-50 dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-800">
+                <div
+                  key={eventIdx}
+                  className="flex items-center p-2 bg-neutral-50 dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-800"
+                >
                   {/* Date and Broadcast (Keep on left) */}
                   <div className="w-1/4 text-sm text-left text-neutral-600 dark:text-neutral-400 flex-shrink-0">
                     {formattedDate}
@@ -703,7 +691,6 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
 
                   {/* Team, '@', and Score/Time Section */}
                   <div className="flex-1 flex items-center justify-center gap-2 text-sm">
-
                     {/* Away Team */}
                     <div className="flex items-center gap-1 flex-1 justify-end">
                       {getTeamLogoUrl(awayTeam) ? (
@@ -712,9 +699,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                           alt={awayTeam?.team.displayName || ''}
                           width={16}
                           height={16}
-                          className={cn('size-4', {
-                            'dark:invert': headerAwayTeam?.team.color === '000000',
-                          })}
+                          className="size-4"
                           unoptimized
                         />
                       ) : (
@@ -737,9 +722,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                           alt={homeTeam?.team.displayName || ''}
                           width={16}
                           height={16}
-                          className={cn('size-4', {
-                            'dark:invert': headerHomeTeam?.team.color === '000000',
-                          })}
+                          className="size-4"
                           unoptimized
                         />
                       ) : (
@@ -758,7 +741,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                       </div>
                     ) : (
                       <div className="text-neutral-500 dark:text-neutral-500">
-                        {new Date(event.date).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}
+                        {new Date(event.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                       </div>
                     )}
                   </div>
@@ -795,7 +778,9 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                           OT{i + 1}
                         </th>
                       ))}
-                    <th className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-7 border-l border-neutral-200 dark:border-neutral-800">T</th>
+                    <th className="py-1 px-1 text-center font-medium text-neutral-600 dark:text-neutral-400 w-7 border-l border-neutral-200 dark:border-neutral-800">
+                      T
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 text-xs">
@@ -809,9 +794,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                             alt={headerAwayTeam.team.displayName}
                             width={16}
                             height={16}
-                            className={cn('size-4', {
-                              'dark:invert': headerAwayTeam.team.color === '000000',
-                            })}
+                            className="size-4"
                             unoptimized
                           />
                         ) : (
@@ -828,10 +811,13 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                       </td>
                     ))}
                     <td
-                      className={cn('py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800', {
-                        'font-extrabold': isAwayWinner,
-                        'font-normal': !isAwayWinner,
-                      })}
+                      className={cn(
+                        'py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800',
+                        {
+                          'font-extrabold': isAwayWinner,
+                          'font-normal': !isAwayWinner,
+                        }
+                      )}
                     >
                       {awayScore}
                     </td>
@@ -846,9 +832,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                             alt={headerHomeTeam.team.displayName}
                             width={16}
                             height={16}
-                            className={cn('size-4', {
-                              'dark:invert': headerHomeTeam.team.color === '000000',
-                            })}
+                            className="size-4"
                             unoptimized
                           />
                         ) : (
@@ -865,10 +849,13 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
                       </td>
                     ))}
                     <td
-                      className={cn('py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800', {
-                        'font-extrabold': isHomeWinner,
-                        'font-normal': !isHomeWinner,
-                      })}
+                      className={cn(
+                        'py-1 px-1 text-center text-neutral-900 dark:text-neutral-100 tabular-nums text-xs border-l border-neutral-200 dark:border-neutral-800',
+                        {
+                          'font-extrabold': isHomeWinner,
+                          'font-normal': !isHomeWinner,
+                        }
+                      )}
                     >
                       {homeScore}
                     </td>
@@ -886,11 +873,7 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
   }
 
   if (!homePlayers || !awayPlayers) {
-    return (
-      <div className="max-w-[1800px] mx-auto px-2">
-        {renderGameHeader()}
-      </div>
-    );
+    return <div className="max-w-[1800px] mx-auto px-2">{renderGameHeader()}</div>;
   }
 
   const statHeaders = awayPlayers.statistics[0].labels;
@@ -954,13 +937,10 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
         })}
       >
         <td
-          className={cn(
-            'sticky left-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50',
-            {
-              'py-0.5 pl-2 pr-3': !isInactive && !isDNP,
-              'py-0 pl-2 pr-3': isInactive || isDNP,
-            }
-          )}
+          className={cn('sticky left-0 bg-white dark:bg-neutral-900 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50', {
+            'py-0.5 pl-2 pr-3': !isInactive && !isDNP,
+            'py-0 pl-2 pr-3': isInactive || isDNP,
+          })}
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <div
@@ -972,7 +952,13 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
               {player.athlete.headshot?.href ? (
                 player.athlete.links?.[0]?.href ? (
                   <Link href={player.athlete.links[0].href} target="_blank" className="block">
-                    <Image src={player.athlete.headshot.href} alt={player.athlete.displayName} fill className="rounded-full object-cover" unoptimized />
+                    <Image
+                      src={player.athlete.headshot.href}
+                      alt={player.athlete.displayName}
+                      fill
+                      className="rounded-full object-cover"
+                      unoptimized
+                    />
                   </Link>
                 ) : (
                   <Image src={player.athlete.headshot.href} alt={player.athlete.displayName} fill className="rounded-full object-cover" unoptimized />
@@ -1031,7 +1017,10 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
           </div>
         </td>
         {isInactive || isDNP ? (
-          <td colSpan={statHeaders.length} className="text-xs text-neutral-500 text-left pl-2 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50">
+          <td
+            colSpan={statHeaders.length}
+            className="text-xs text-neutral-500 text-left pl-2 group-hover:bg-neutral-50 dark:group-hover:bg-neutral-800/50"
+          >
             {isDNP ? 'DNP' : 'Inactive'}
           </td>
         ) : (
@@ -1084,7 +1073,9 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
 
     // Sort and filter players
     const activeStarters = players.statistics[0].athletes.filter((p) => p.starter && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
-    const activeBench = players.statistics[0].athletes.filter((p) => !p.starter && !p.didNotPlay && !p.stats.every((s) => s === '--')).sort(sortPlayersByPoints);
+    const activeBench = players.statistics[0].athletes
+      .filter((p) => !p.starter && !p.didNotPlay && !p.stats.every((s) => s === '--'))
+      .sort(sortPlayersByPoints);
 
     // Handle inactive and DNP players based on game status
     const inactivePlayers = isGameOver
@@ -1105,30 +1096,12 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
             'justify-end': isHome,
           })}
         >
-          {!isHome && (
-            <Image
-              src={team.team.logo || ''}
-              alt={team.team.displayName}
-              width={20}
-              height={20}
-              className={cn('size-7', {
-                'dark:invert': team.team.color === '000000',
-              })}
-              unoptimized
-            />
+          {!isHome && getTeamLogoUrl(team) && (
+            <Image src={getTeamLogoUrl(team)} alt={team.team.displayName} width={20} height={20} className="size-7" unoptimized />
           )}
           <h3 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">{team.team.displayName}</h3>
-          {isHome && (
-            <Image
-              src={team.team.logo || ''}
-              alt={team.team.displayName}
-              width={20}
-              height={20}
-              className={cn('size-7', {
-                'dark:invert': team.team.color === '000000',
-              })}
-              unoptimized
-            />
+          {isHome && getTeamLogoUrl(team) && (
+            <Image src={getTeamLogoUrl(team)} alt={team.team.displayName} width={20} height={20} className="size-7" unoptimized />
           )}
         </div>
 
@@ -1195,19 +1168,18 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
 
               {/* Team Totals */}
               <tr className="bg-neutral-100 dark:bg-neutral-800 font-medium border-t-2 border-neutral-300 dark:border-neutral-700">
-                <td className="py-2 px-2 text-left text-sm text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-100 dark:bg-neutral-800 font-bold">TOTALS</td>
+                <td className="py-2 px-2 text-left text-sm text-neutral-900 dark:text-neutral-100 sticky left-0 bg-neutral-100 dark:bg-neutral-800 font-bold">
+                  TOTALS
+                </td>
                 {reorderStats([], statHeaders).reorderedHeaders.map((header, index) => {
                   if (header.includes('%')) return null;
                   const statName = statAbbreviationMap[header];
-                  
+
                   // For points, use the totals array from players statistics
                   if (header === 'PTS') {
                     const totals = players.statistics[0].totals;
                     return (
-                      <td
-                        key={header}
-                        className="py-2 text-center text-sm tabular-nums text-neutral-900 dark:text-neutral-100 font-bold px-2"
-                      >
+                      <td key={header} className="py-2 text-center text-sm tabular-nums text-neutral-900 dark:text-neutral-100 font-bold px-2">
                         {totals[totals.length - 1] || ''}
                       </td>
                     );
@@ -1309,4 +1281,4 @@ export default function WNBAGameStats({ data, league }: WNBAGameStatsProps) {
       )}
     </div>
   );
-} 
+}

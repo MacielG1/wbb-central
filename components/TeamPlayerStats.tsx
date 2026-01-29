@@ -201,7 +201,13 @@ export default function TeamPlayerStats({ players }: PlayerStatsProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className={cn('text-xs px-1.5 py-0.5 rounded-full', 'text-neutral-600 dark:text-neutral-400', 'bg-neutral-100 dark:bg-neutral-800')}>
+                    <span
+                      className={cn(
+                        'text-xs px-1.5 py-0.5 rounded-full',
+                        'text-neutral-600 dark:text-neutral-400',
+                        'bg-neutral-100 dark:bg-neutral-800'
+                      )}
+                    >
                       {player.athlete.position.abbreviation}
                     </span>
                     <span className="text-xs text-neutral-500 dark:text-neutral-400">{gamesPlayed} GP</span>

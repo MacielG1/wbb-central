@@ -4,11 +4,13 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Event, Competitor } from '@/types/espn';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import getFavorites from '@/lib/getFavorites';
 import fetchTeamData from '@/utils/NCAAW/fetchTeamData';
 import { useRouter } from 'next/navigation';
 import { StarIcon } from 'lucide-react';
+import { DARK_COLORED_LOGOS } from '@/lib/consts';
+import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 
 interface ScheduleRowProps {
   game: Event;
@@ -50,16 +52,7 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
         <Link href={`/${league}/${team.id}`} className="z-[100]" onClick={(e) => e.stopPropagation()}>
           <div className="size-6 shrink-0">
             {logo ? (
-              <Image
-                src={logo}
-                alt={''}
-                width={24}
-                height={24}
-                className={cn('size-6 hover:scale-105 transition-all', {
-                  'dark:invert': team.color === '000000',
-                })}
-                unoptimized
-              />
+              <Image src={logo} alt={''} width={24} height={24} className="size-6 hover:scale-105 transition-all" unoptimized />
             ) : (
               <div className="size-6 bg-transparent rounded-full" />
             )}
@@ -80,14 +73,15 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
             onClick={(e) => e.stopPropagation()}
           >
             <span className="font-semibold group-hover:text-neutral-700 dark:group-hover:text-neutral-300">{team.location}</span>
-            <span className="font-normal text-neutral-500 dark:text-neutral-400 ml-1 group-hover:text-neutral-600 dark:group-hover:text-neutral-300/60">{team.name}</span>
+            <span className="font-normal text-neutral-500 dark:text-neutral-400 ml-1 group-hover:text-neutral-600 dark:group-hover:text-neutral-300/60">
+              {team.name}
+            </span>
           </Link>
           <div className="flex items-center">
             <span className="text-xs text-neutral-500 ml-2 whitespace-nowrap pt-[1px]">{getRecord(competitor)}</span>
             {isFavorite && <StarIcon className="w-3.5 h-3.5 ml-2 text-[#bc7200] fill-current" />}
           </div>
         </div>
-        
       </div>
 
       {isCompleted || isInProgress ? (
@@ -106,7 +100,7 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
   );
 }
 
-export default function ScheduleRow({ game, league, showOnlyTop25 = false}: ScheduleRowProps) {
+export default function ScheduleRow({ game, league, showOnlyTop25 = false }: ScheduleRowProps) {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const competition = game.competitions[0];
   const homeTeam = competition.competitors.find((team: Competitor) => team.homeAway === 'home');
@@ -117,11 +111,11 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false}: Sche
     const favs = getFavorites(league);
 
     const favsBooleanMap: Record<string, boolean> = {};
-    Object.keys(favs).forEach(id => {
+    Object.keys(favs).forEach((id) => {
       favsBooleanMap[id] = true;
     });
     setFavorites(favsBooleanMap);
-    
+
     const homeTeamId = homeTeam?.team?.id;
     const awayTeamId = awayTeam?.team?.id;
     const isHomeTeamFavorite = homeTeamId ? favsBooleanMap[homeTeamId] : false;
@@ -151,8 +145,16 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false}: Sche
   const isInProgress = game.status.type.state === 'in';
   const isPostponed = game.status.type.id === '6';
 
-  const homeTeamLogo = homeTeam.team.logo;
-  const awayTeamLogo = awayTeam.team.logo;
+  // Look up teams in allTeamsData for correct logos (same as rankings)
+  const homeTeamFromData = useMemo(() => allTeamsData.find((t) => t.id === homeTeam.team.id), [homeTeam.team.id]);
+  const awayTeamFromData = useMemo(() => allTeamsData.find((t) => t.id === awayTeam.team.id), [awayTeam.team.id]);
+
+  const homeLogoIndex = DARK_COLORED_LOGOS.includes(homeTeam.team.displayName) ? 1 : 0;
+  const awayLogoIndex = DARK_COLORED_LOGOS.includes(awayTeam.team.displayName) ? 1 : 0;
+
+  // Use allTeamsData logo if available, otherwise fall back to API logo
+  const homeTeamLogo = homeTeamFromData?.logos?.[homeLogoIndex]?.href ?? homeTeam.team.logo;
+  const awayTeamLogo = awayTeamFromData?.logos?.[awayLogoIndex]?.href ?? awayTeam.team.logo;
 
   const homeTeamRank = homeTeam.curatedRank?.current;
   const awayTeamRank = awayTeam.curatedRank?.current;
@@ -181,7 +183,8 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false}: Sche
         'relative w-full text-left flex flex-col cursor-pointer px-3 sm:px-4 py-2 transition-colors border-b border-t border-neutral-200 dark:border-neutral-800 min-w-0 hover:bg-neutral-50 dark:hover:bg-neutral-900/35',
         'sm:nth-[2n]:border-l sm:odd:border-l sm:even:border-r',
         {
-          '[&]:border-yellow-400 dark:[&]:border-yellow-600/50 [&]:border-t [&]:border-l [&]:border-r sm:[&]:border-r': favorites[homeTeam.team.id] || favorites[awayTeam.team.id],
+          '[&]:border-yellow-400 dark:[&]:border-yellow-600/50 [&]:border-t [&]:border-l [&]:border-r sm:[&]:border-r':
+            favorites[homeTeam.team.id] || favorites[awayTeam.team.id],
           'first:border-neutral-200 dark:first:border-neutral-800': !favorites[homeTeam.team.id] && !favorites[awayTeam.team.id],
           'sm:last:odd:border-r sm:last:odd:w-[calc(100%+1px)]': !favorites[homeTeam.team.id] && !favorites[awayTeam.team.id],
         }

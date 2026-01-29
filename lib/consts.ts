@@ -6,4 +6,6 @@ export const DARK_COLORED_LOGOS = [
   'Richmond Spiders',
   'Oral Roberts Golden Eagles',
   'Duquesne Dukes',
+  'California Golden Bears',
+  'Penn State Lady Lions',
 ];

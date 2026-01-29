@@ -156,9 +156,7 @@ export default function WNBATeamPlayerStats({ teamStats }: WNBAPlayerStatsProps)
 
       <div className="grid gap-2.5 pb-3 max-w-5xl mx-auto">
         {sortedPlayers.length === 0 ? (
-          <div className="text-center py-8 text-neutral-600 dark:text-neutral-400">
-            No player statistics available for this season.
-          </div>
+          <div className="text-center py-8 text-neutral-600 dark:text-neutral-400">No player statistics available for this season.</div>
         ) : (
           sortedPlayers.map((player) => {
             const generalStats = player.statistics.find((stat) => stat.name === 'general');
@@ -234,13 +232,17 @@ export default function WNBATeamPlayerStats({ teamStats }: WNBAPlayerStatsProps)
                           {player.athlete.displayName}
                         </Link>
                       ) : (
-                        <span className="font-semibold text-sm flex-wrap dark:text-white max-w-[180px]">
-                          {player.athlete.displayName}
-                        </span>
+                        <span className="font-semibold text-sm flex-wrap dark:text-white max-w-[180px]">{player.athlete.displayName}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className={cn('text-xs px-1.5 py-0.5 rounded-full', 'text-neutral-600 dark:text-neutral-400', 'bg-neutral-100 dark:bg-neutral-800')}>
+                      <span
+                        className={cn(
+                          'text-xs px-1.5 py-0.5 rounded-full',
+                          'text-neutral-600 dark:text-neutral-400',
+                          'bg-neutral-100 dark:bg-neutral-800'
+                        )}
+                      >
                         {player.athlete.position.abbreviation}
                       </span>
                       <span className="text-xs text-neutral-500 dark:text-neutral-400">{gamesPlayed} GP</span>
