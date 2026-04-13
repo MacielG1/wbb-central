@@ -133,10 +133,9 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
     const isNeutralSite = competition.neutralSite ?? false;
     const isPreseason = game.seasonType.type === 1;
 
-    // Look up team in allTeamsData for correct logo (same as rankings)
-    const teamFromData = allTeamsData.find((t) => t.id === opponent.team.id);
     const logoIndex = DARK_COLORED_LOGOS.includes(opponent.team.displayName) ? 1 : 0;
-    // Use allTeamsData logo if available, otherwise fall back to API logo
+    // Only use allTeamsData for non-WNBA leagues to avoid NCAAW ID collisions with WNBA
+    const teamFromData = league !== 'wnba' ? allTeamsData.find((t) => t.id === opponent.team.id) : null;
     const opponentLogo = teamFromData?.logos?.[logoIndex]?.href ?? opponent.team.logos?.[logoIndex]?.href;
 
     const dateInfo = formatGameDate(game.date);
@@ -155,7 +154,7 @@ export default function ScheduleRow({ game, isLast, teamId, league }: ScheduleRo
       dateInfo,
       isPreseason,
     };
-  }, [game, teamId]);
+  }, [game, teamId, league]);
 
   if (!competition || !currentTeam || !opponent) return null;
 

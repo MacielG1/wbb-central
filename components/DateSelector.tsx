@@ -39,27 +39,35 @@ export default function DateSelector({ league }: DateSelectorProps) {
   const currentDate = searchParams.get('date') ? parseUrlDate(searchParams.get('date')!) : getTodayInET();
 
   function parseUrlDate(dateString: string) {
+    const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+
     const cleanDate = dateString.replace(/-/g, '');
     const year = parseInt(cleanDate.substring(0, 4));
     const month = parseInt(cleanDate.substring(4, 6)) - 1;
     const day = parseInt(cleanDate.substring(6, 8));
-    return new Date(year, month, day);
+    const parsedDate = new Date(year, month, day);
+
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return parsedDate;
+    }
+
+    const fallbackDate = new Date(dateString);
+    if (!Number.isNaN(fallbackDate.getTime())) {
+      return new Date(fallbackDate.getFullYear(), fallbackDate.getMonth(), fallbackDate.getDate());
+    }
+
+    return new Date(Number.NaN);
   }
 
   const availableDates = league.calendar.map((dateString) => {
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
-      const date = new Date(year, month, day);
-      date.setHours(0, 0, 0, 0);
-      return date;
-    }
-    const date = new Date(dateString);
+    const date = parseUrlDate(dateString);
     date.setHours(0, 0, 0, 0);
     return date;
-  });
+  }).filter((date) => !Number.isNaN(date.getTime()));
 
   function findClosestAvailableDate(targetDate: Date, availableDates: Date[]) {
     const exactMatch = availableDates.find((date) => date.toDateString() === targetDate.toDateString());

@@ -145,9 +145,9 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false }: Sch
   const isInProgress = game.status.type.state === 'in';
   const isPostponed = game.status.type.id === '6';
 
-  // Look up teams in allTeamsData for correct logos (same as rankings)
-  const homeTeamFromData = useMemo(() => allTeamsData.find((t) => t.id === homeTeam.team.id), [homeTeam.team.id]);
-  const awayTeamFromData = useMemo(() => allTeamsData.find((t) => t.id === awayTeam.team.id), [awayTeam.team.id]);
+  // Look up teams in allTeamsData for correct logos (same as rankings) - skip for WNBA to avoid NCAAW ID collisions
+  const homeTeamFromData = useMemo(() => league !== 'wnba' ? allTeamsData.find((t) => t.id === homeTeam.team.id) : null, [homeTeam.team.id, league]);
+  const awayTeamFromData = useMemo(() => league !== 'wnba' ? allTeamsData.find((t) => t.id === awayTeam.team.id) : null, [awayTeam.team.id, league]);
 
   const homeLogoIndex = DARK_COLORED_LOGOS.includes(homeTeam.team.displayName) ? 1 : 0;
   const awayLogoIndex = DARK_COLORED_LOGOS.includes(awayTeam.team.displayName) ? 1 : 0;

@@ -26,6 +26,33 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+function parseDateString(dateString: string) {
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (match) {
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsedDate = new Date(dateString);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+  }
+
+  return new Date(Number.NaN);
+}
+
+function formatDateString(date: Date) {
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default async function NCAAWPage(props: { searchParams: SearchParamsType }) {
   const searchParams = await props.searchParams;
 
@@ -46,27 +73,29 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
     const availableDates = data.leagues[0].calendar;
     
     if (availableDates && availableDates.length > 0) {
-      const today = new Date();
-      let closestDate = availableDates[0];
-      let closestDiff = Math.abs(new Date(closestDate).getTime() - today.getTime());
+      const today = parseDateString(currentDate);
+      const validAvailableDates = availableDates.filter((dateStr) => !Number.isNaN(parseDateString(dateStr).getTime()));
 
-      for (const dateStr of availableDates) {
-        const date = new Date(dateStr);
-        const diff = Math.abs(date.getTime() - today.getTime());
+      if (validAvailableDates.length > 0) {
+        let closestDate = validAvailableDates[0];
+        let closestDiff = Math.abs(parseDateString(closestDate).getTime() - today.getTime());
+
+        for (const dateStr of validAvailableDates) {
+          const date = parseDateString(dateStr);
+          const diff = Math.abs(date.getTime() - today.getTime());
+          
+          if (diff < closestDiff) {
+            closestDate = dateStr;
+            closestDiff = diff;
+          }
+        }
+
+        const formattedDate = formatDateString(parseDateString(closestDate));
         
-        if (diff < closestDiff) {
-          closestDate = dateStr;
-          closestDiff = diff;
+        if (formattedDate) {
+          data = (await fetchSchedule(formattedDate)) as APIResponse;
         }
       }
-      
-      const closestDateObj = new Date(closestDate);
-      const year = closestDateObj.getFullYear();
-      const month = String(closestDateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(closestDateObj.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      
-      data = (await fetchSchedule(formattedDate)) as APIResponse;
     }
   }
   
