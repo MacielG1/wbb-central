@@ -29,17 +29,9 @@ export async function fetchWNBASchedule(date?: string): Promise<APIResponse> {
   const today = `${parts[0].value}-${parts[2].value}-${parts[4].value}`;
   const apiDate = date ? date.replace(/-/g, '') : today;
 
-  const seasonStartDate = new Date(`${currentYear}-05-01`); // if accessing before this date, use year only
-  const requestedDate = date ? new Date(date) : new Date();
-
-  let url: string;
-  if (requestedDate < seasonStartDate) {
-    // If requested date is before season start, don't include dates parameter
-    url = `${process.env.WNBA_fetchSchedule}?year=${currentYear}`;
-  } else {
-    // Otherwise, include dates parameter for specific day
-    url = `${process.env.WNBA_fetchSchedule}?dates=${apiDate}&year=${currentYear}`;
-  }
+  const url = date
+    ? `${process.env.WNBA_fetchSchedule}?dates=${apiDate}&year=${currentYear}`
+    : `${process.env.WNBA_fetchSchedule}?year=${currentYear}`;
 
   async function attemptFetch(isRetry = false) {
     const res = await fetch(url, {});

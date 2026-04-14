@@ -8,7 +8,7 @@ export default async function Home() {
   const currentDay = currentDate.getDate();
 
   const isWNBASeason =
-    (currentMonth === 3 && currentDay >= 15) || // After mid-April
+    (currentMonth === 3 && currentDay >= 12) || // After mid-April
     (currentMonth > 3 && currentMonth < 9) || // May through September
     (currentMonth === 9 && currentDay <= 15); // Before end of October
 
