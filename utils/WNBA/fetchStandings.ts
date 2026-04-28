@@ -10,9 +10,13 @@ interface WNBATeamStanding {
   logo?: string;
 }
 
-async function fetchStandingsForYear(year: number): Promise<WNBATeamStanding[]> {
+async function fetchStandingsForYear(
+  year: number,
+  seasonType: 0 | 2 = 2,
+  zeroRecords = false,
+): Promise<WNBATeamStanding[]> {
   const response = await fetch(
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?region=us&lang=en&contentorigin=espn&type=0&level=1&sort=winpercent:desc&season=${year}&startingseason=2007`
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?region=us&lang=en&contentorigin=espn&type=${seasonType}&level=1&sort=winpercent:desc&season=${year}&startingseason=2007`
   );
   const data = await response.json();
 
@@ -28,11 +32,11 @@ async function fetchStandingsForYear(year: number): Promise<WNBATeamStanding[]> 
 
     return {
       id: entry.team.id,
-      rank: entry.playoffSeed || 0,
+      rank: zeroRecords ? 0 : entry.playoffSeed || 0,
       name: entry.team.displayName,
-      wins: stats.wins?.value || 0,
-      losses: stats.losses?.value || 0,
-      winPct: stats.winPercent?.displayValue || '0.000',
+      wins: zeroRecords ? 0 : stats.wins?.value || 0,
+      losses: zeroRecords ? 0 : stats.losses?.value || 0,
+      winPct: zeroRecords ? '0.000' : stats.winPercent?.displayValue || '0.000',
       logo: entry.team.logos?.[0]?.href,
     };
   });
@@ -43,17 +47,23 @@ export async function fetchWNBAStandings(): Promise<{ standings: WNBATeamStandin
   cacheLife('minutes');
   const currentYear = new Date().getFullYear();
 
-  // Try current year first
-  let standings = await fetchStandingsForYear(currentYear);
+  // Try current year regular-season standings first.
+  let standings = await fetchStandingsForYear(currentYear, 2);
 
-  // If no standings found OR all teams have 0-0 record (season hasn't started), fall back to previous year
-  const hasNoData = standings.length === 0;
-  const allTeamsZeroWins = standings.length > 0 && standings.every((team) => team.wins === 0 && team.losses === 0);
-
-  if (hasNoData || allTeamsZeroWins) {
-    standings = await fetchStandingsForYear(currentYear - 1);
-    return { standings, season: currentYear - 1 };
+  if (standings.length > 0) {
+    return { standings, season: currentYear };
   }
 
-  return { standings, season: currentYear };
+  // Regular season hasn't started yet (e.g. preseason). ESPN returns 0 entries for type=2,
+  // but type=0 (overall) has the team list with preseason records. Use that for the team
+  // list / logos but zero out W/L so we don't display preseason records as standings.
+  const overallZeroed = await fetchStandingsForYear(currentYear, 0, true);
+
+  if (overallZeroed.length > 0) {
+    return { standings: overallZeroed, season: currentYear };
+  }
+
+  // Truly nothing for current year — fall back to previous year's final standings.
+  standings = await fetchStandingsForYear(currentYear - 1, 2);
+  return { standings, season: currentYear - 1 };
 }
