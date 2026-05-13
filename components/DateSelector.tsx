@@ -2,8 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useRef, useEffect, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import type { League } from '@/types/espn';
 import Link from 'next/link';
 
@@ -12,12 +12,10 @@ interface DateSelectorProps {
 }
 
 export default function DateSelector({ league }: DateSelectorProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentDateRef = useRef<HTMLAnchorElement>(null);
   const [isContentReady, setIsContentReady] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const [loadingDate, setLoadingDate] = useState<string | null>(null);
   const hasInitialScrolledRef = useRef(false);
   const userClickedDateRef = useRef(false);
@@ -222,22 +220,11 @@ export default function DateSelector({ league }: DateSelectorProps) {
     return () => clearTimeout(lateCheckTimer);
   }, [isContentReady, isDateCentered, scrollToCurrentDate]);
 
-  // Reset user click flag after navigation completes
+  // Clear loading date when date changes
   useEffect(() => {
-    if (!isPending && userClickedDateRef.current) {
-      const timer = setTimeout(() => {
-        userClickedDateRef.current = false;
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isPending]);
-
-  // Clear loading date when transition completes or date changes
-  useEffect(() => {
-    if (!isPending) {
-      setLoadingDate(null);
-    }
-  }, [isPending, currentDate]);
+    userClickedDateRef.current = false;
+    setLoadingDate(null);
+  }, [currentDate]);
 
   return (
     <div className={cn('relative flex items-center px-4 py-2 bg-white dark:bg-neutral-900 border-b-0 border-neutral-200 dark:border-neutral-800')}>
@@ -266,7 +253,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
               onClick={(e) => {
                 userClickedDateRef.current = true;
                 setLoadingDate(urlDate);
-                // Auto-center the clicked date
                 const target = e.currentTarget;
                 setTimeout(() => {
                   target.scrollIntoView({
@@ -275,9 +261,6 @@ export default function DateSelector({ league }: DateSelectorProps) {
                     block: 'nearest',
                   });
                 }, 50);
-                startTransition(() => {
-                  router.push(`?${createQueryString(urlDate)}`);
-                });
               }}
               className={cn(
                 'relative px-3 py-1 text-sm rounded-full whitespace-nowrap shrink-0 cursor-pointer transition-opacity',

@@ -2,7 +2,7 @@
 
 import { Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import getFavorites, { saveFavorite } from '@/lib/getFavorites';
+import getFavorites, { FAVORITES_UPDATED_EVENT, saveFavorite } from '@/lib/getFavorites';
 
 interface FavoriteTeamButtonProps {
   teamId: string;
@@ -15,9 +15,15 @@ export default function FavoriteTeamButton({ teamId, teamName, league }: Favorit
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    const favorites = getFavorites(league);
-    setIsFavorite(!!favorites[teamId]);
+
+    function updateFavoriteState() {
+      const favorites = getFavorites(league);
+      setIsFavorite(!!favorites[teamId]);
+    }
+
+    updateFavoriteState();
+    window.addEventListener(FAVORITES_UPDATED_EVENT, updateFavoriteState);
+    return () => window.removeEventListener(FAVORITES_UPDATED_EVENT, updateFavoriteState);
   }, [teamId, league]);
 
   function toggleFavorite() {

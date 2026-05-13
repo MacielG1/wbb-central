@@ -4,11 +4,11 @@ import ScheduleRow from './ScheduleRow';
 import { get, set } from 'idb-keyval';
 import LoadingSpinner from './LoadingSpinner';
 import { Switch } from '@/components/ui/switch';
-import getFavorites from '@/lib/getFavorites';
+import getFavorites, { FAVORITES_UPDATED_EVENT } from '@/lib/getFavorites';
 import { useRouter } from 'next/navigation';
 import { RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 
 interface WNBAScheduleProps {
   events: any[];
@@ -72,6 +72,7 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState(initialEvents);
+  const [favoriteTeamIds, setFavoriteTeamIds] = useState<Record<string, boolean>>({});
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -90,6 +91,21 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
     setEvents(initialEvents);
   }, [initialEvents]);
 
+  useEffect(() => {
+    function updateFavorites() {
+      const favorites = getFavorites('wnba');
+      const favoriteIds: Record<string, boolean> = {};
+      Object.keys(favorites).forEach((id) => {
+        favoriteIds[id] = true;
+      });
+      setFavoriteTeamIds(favoriteIds);
+    }
+
+    updateFavorites();
+    window.addEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+    return () => window.removeEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+  }, []);
+
   function handleRefresh() {
     startTransition(() => {
       router.refresh();
@@ -105,11 +121,8 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
   const hasNoGamesToShow =
     events.length > 0 &&
     !events.some((game) => {
-      const competitors = game.competitions[0].competitors;
-      const hasFavoriteTeam = competitors.some((team: any) => {
-        const favorites = getFavorites('wnba');
-        return favorites[team.team.id];
-      });
+      const competitors = game.competitions?.[0]?.competitors ?? [];
+      const hasFavoriteTeam = competitors.some((team: any) => favoriteTeamIds[team.team.id]);
 
       if (showOnlyFavorites) {
         return hasFavoriteTeam;
@@ -117,18 +130,16 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
       return true;
     });
 
-  const sortedEvents = [...events].filter(game => {
-    if (!showOnlyFavorites) return true;
-    
-    const competitors = game.competitions[0].competitors;
-    const hasFavoriteTeam = competitors.some((team: any) => {
-      const favorites = getFavorites('wnba');
-      return favorites[team.team.id];
-    });
+  const sortedEvents = useMemo(() => {
+    return [...events].filter(game => {
+      if (!showOnlyFavorites) return true;
 
-    if (showOnlyFavorites) return hasFavoriteTeam;
-    return true;
-  }).sort((a, b) => {
+      const competitors = game.competitions?.[0]?.competitors ?? [];
+      const hasFavoriteTeam = competitors.some((team: any) => favoriteTeamIds[team.team.id]);
+
+      if (showOnlyFavorites) return hasFavoriteTeam;
+      return true;
+    }).sort((a, b) => {
     const aStatus = a.status.type;
     const bStatus = b.status.type;
 
@@ -147,7 +158,8 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
     }
 
     return 0;
-  });
+    });
+  }, [events, favoriteTeamIds, showOnlyFavorites]);
 
   if (isLoading) {
     return (
@@ -177,7 +189,7 @@ export default function WNBASchedule({ events: initialEvents, league }: WNBASche
           </div>
         ) : (
           sortedEvents.map((game) => (
-            <ScheduleRow key={game.id} game={game} league={league} />
+            <ScheduleRow key={game.id} game={game} league={league} favoriteTeamIds={favoriteTeamIds} />
           ))
         )}
       </div>

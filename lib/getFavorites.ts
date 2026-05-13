@@ -8,6 +8,8 @@ interface FavoritesRecord {
   [teamId: string]: TeamInfo;
 }
 
+export const FAVORITES_UPDATED_EVENT = 'favorites-updated';
+
 export default function getFavorites(league = 'all'): FavoritesRecord {
   try {
     if (typeof window === 'undefined') {
@@ -50,6 +52,7 @@ export function saveFavorite(teamId: string, teamName: string, league: string, i
     }
     
     localStorage.setItem('favoriteTeams', JSON.stringify(allFavorites));
+    window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
     return true;
   } catch (error) {
     console.error('Error updating favorites:', error);

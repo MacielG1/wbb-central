@@ -10,13 +10,9 @@ interface WNBATeamStanding {
   logo?: string;
 }
 
-async function fetchStandingsForYear(
-  year: number,
-  seasonType: 0 | 2 = 2,
-  zeroRecords = false,
-): Promise<WNBATeamStanding[]> {
+async function fetchStandingsForYear(year: number, seasonType: 0 | 2 = 2, zeroRecords = false): Promise<WNBATeamStanding[]> {
   const response = await fetch(
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?region=us&lang=en&contentorigin=espn&type=${seasonType}&level=1&sort=winpercent:desc&season=${year}&startingseason=2007`
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/wnba/standings?region=us&lang=en&contentorigin=espn&type=${seasonType}&level=1&sort=winpercent:desc&season=${year}&startingseason=2007`,
   );
   const data = await response.json();
 
@@ -48,22 +44,29 @@ export async function fetchWNBAStandings(): Promise<{ standings: WNBATeamStandin
   const currentYear = new Date().getFullYear();
 
   // Try current year regular-season standings first.
-  let standings = await fetchStandingsForYear(currentYear, 2);
+  const regularSeason = await fetchStandingsForYear(currentYear, 2);
+  const hasRecords = regularSeason.some((t) => t.wins > 0 || t.losses > 0);
 
-  if (standings.length > 0) {
-    return { standings, season: currentYear };
+  if (regularSeason.length > 0 && hasRecords) {
+    return { standings: regularSeason, season: currentYear };
   }
 
-  // Regular season hasn't started yet (e.g. preseason). ESPN returns 0 entries for type=2,
-  // but type=0 (overall) has the team list with preseason records. Use that for the team
-  // list / logos but zero out W/L so we don't display preseason records as standings.
-  const overallZeroed = await fetchStandingsForYear(currentYear, 0, true);
+  // Regular season hasn't started, OR ESPN's regular-season endpoint is returning
+  // all-zero records (known delay early in the season). Fall back to type=0 (overall)
+  // which mirrors what ESPN's standings page actually displays. If regular season truly
+  // hasn't started (no team has any wins/losses), zero out so we don't show preseason.
+  const overall = await fetchStandingsForYear(currentYear, 0);
+  const overallHasRecords = overall.some((t) => t.wins > 0 || t.losses > 0);
 
-  if (overallZeroed.length > 0) {
-    return { standings: overallZeroed, season: currentYear };
+  if (overall.length > 0) {
+    if (regularSeason.length > 0 && !hasRecords && overallHasRecords) {
+      return { standings: overall, season: currentYear };
+    }
+    const zeroed = overall.map((t) => ({ ...t, rank: 0, wins: 0, losses: 0, winPct: '0.000' }));
+    return { standings: zeroed, season: currentYear };
   }
 
   // Truly nothing for current year — fall back to previous year's final standings.
-  standings = await fetchStandingsForYear(currentYear - 1, 2);
-  return { standings, season: currentYear - 1 };
+  const prev = await fetchStandingsForYear(currentYear - 1, 2);
+  return { standings: prev, season: currentYear - 1 };
 }

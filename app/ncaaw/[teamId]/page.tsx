@@ -3,7 +3,6 @@ import TeamSchedule from '@/components/TeamSchedule';
 import TeamSelector from '@/components/TeamSelector';
 import ConferenceStandings from '@/components/ConferenceStandings';
 import FavoriteTeamButton from '@/components/FavoriteTeamButton';
-import { cn } from '@/lib/utils';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import { fetchAllTeamIds } from '@/utils/NCAAW/fetchAllTeamIds';
 import fetchRosterData from '@/utils/NCAAW/fetchRosterData';
@@ -33,13 +32,18 @@ export default async function TeamPage(props: { params: paramsType }) {
   const teamData = await fetchTeamSchedule(teamId);
   const conferenceId = teamData.team?.groups?.id;
   const [conferenceData, rosterData, teamsIds] = await Promise.all([fetchConferenceData(conferenceId), fetchRosterData(teamId), fetchAllTeamIds()]);
+  const logoIndex = DARK_COLORED_LOGOS.includes(teamData.team.displayName) ? 1 : 0;
+  const teamLogo =
+    teamData?.team?.logo ||
+    teamData?.team?.logos?.[logoIndex]?.href ||
+    'https://a.espncdn.com/i/teamlogos/leagues/500/womens-college-basketball.png';
 
   return (
     <main className="grid pb-6 min-[850px]:grid-cols-2 min-[1400px]:grid-cols-[3fr_2fr_4fr] mx-auto min-[850px]:max-[1349px]:[&>*:last-child]:col-span-2">
       <section className="w-full mx-auto  p-2 md:p-3 xl:p-2 2xl:p-6 border-r border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <Image
-            src={teamData?.team?.logo || teamData?.team?.logos?.[DARK_COLORED_LOGOS.includes(teamData.team.displayName) ? 1 : 0]?.href}
+            src={teamLogo}
             alt={`${teamData.team.displayName} logo`}
             unoptimized
             priority

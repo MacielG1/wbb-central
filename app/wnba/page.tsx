@@ -13,6 +13,33 @@ import { fetchWNBASchedule } from '@/utils/WNBA/fetchSchedule';
 
 export type SearchParamsType = Promise<{ date?: string }>;
 
+function parseDateString(dateString: string) {
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (match) {
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsedDate = new Date(dateString);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+  }
+
+  return new Date(Number.NaN);
+}
+
+function formatDateString(date: Date) {
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: 'WNBA Basketball',
@@ -37,38 +64,49 @@ export default async function WNBAPage(props: { searchParams: SearchParamsType }
   const currentDate = searchParams.date || 
     `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 
+  const teamsIdsPromise = fetchWNBATeamIds();
   let data = await fetchWNBASchedule(currentDate);
-  
-  if (data.events.length === 0 && !searchParams.date) {
+  const events = data.events ?? [];
+  const league = data.leagues?.[0] ?? { calendar: [], abbreviation: 'wnba' };
 
-    const availableDates = data.leagues[0].calendar;
+  if (events.length === 0 && !searchParams.date) {
+
+    const availableDates = league.calendar;
     
     if (availableDates && availableDates.length > 0) {
-      const today = new Date();
-      let closestDate = availableDates[0];
-      let closestDiff = Math.abs(new Date(closestDate).getTime() - today.getTime());
-      
-      for (const dateStr of availableDates) {
-        const date = new Date(dateStr);
-        const diff = Math.abs(date.getTime() - today.getTime());
-        
-        if (diff < closestDiff) {
-          closestDate = dateStr;
-          closestDiff = diff;
+      const todayParts = formatter.formatToParts(new Date());
+      const todayYear = parseInt(todayParts.find((p) => p.type === 'year')?.value || '0');
+      const todayMonth = parseInt(todayParts.find((p) => p.type === 'month')?.value || '0') - 1;
+      const todayDay = parseInt(todayParts.find((p) => p.type === 'day')?.value || '0');
+      const today = new Date(todayYear, todayMonth, todayDay);
+      const validAvailableDates = availableDates.filter((dateStr) => !Number.isNaN(parseDateString(dateStr).getTime()));
+
+      if (validAvailableDates.length > 0) {
+        let closestDate = validAvailableDates[0];
+        let closestDiff = Math.abs(parseDateString(closestDate).getTime() - today.getTime());
+
+        for (const dateStr of validAvailableDates) {
+          const date = parseDateString(dateStr);
+          const diff = Math.abs(date.getTime() - today.getTime());
+
+          if (diff < closestDiff) {
+            closestDate = dateStr;
+            closestDiff = diff;
+          }
+        }
+
+        const formattedDate = formatDateString(parseDateString(closestDate));
+
+        if (formattedDate) {
+          data = await fetchWNBASchedule(formattedDate);
         }
       }
-      
-      const closestDateObj = new Date(closestDate);
-      const year = closestDateObj.getFullYear();
-      const month = String(closestDateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(closestDateObj.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
-      
-      data = await fetchWNBASchedule(formattedDate);
     }
   }
 
-  const teamsIds = await fetchWNBATeamIds();
+  const teamsIds = await teamsIdsPromise;
+  const displayEvents = data.events ?? [];
+  const displayLeague = data.leagues?.[0] ?? league;
 
   return (
     <main>
@@ -90,7 +128,7 @@ export default async function WNBAPage(props: { searchParams: SearchParamsType }
           <div className="flex flex-col lg:flex-row items-center justify-center 2xl:justify-between gap-16 sm:gap-2 lg:gap-4 xl:gap-8 3xl:gap-9 ">
             <div className="max-w-sm sm:max-w-lg md:max-w-xl lg:max-w-[33.5rem] xl:max-w-[39.5rem] 2xl:max-w-[44.5rem] 3xl:max-w-[62rem]">
               <Suspense fallback={null}>
-                <DateSelector league={data.leagues[0]} />
+                <DateSelector league={displayLeague} />
               </Suspense>
             </div>
             <div>
@@ -100,7 +138,7 @@ export default async function WNBAPage(props: { searchParams: SearchParamsType }
             </div>
           </div>
 
-          <WNBASchedule events={data.events} league={data.leagues[0].abbreviation.toLowerCase()} />
+          <WNBASchedule events={displayEvents} league={displayLeague.abbreviation.toLowerCase()} />
         </div>
 
         <div className="w-full lg:w-72 xl:w-[330px] shrink-0 justify-self-end">

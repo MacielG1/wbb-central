@@ -66,11 +66,14 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
   const currentDate = searchParams.date || 
     `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 
+  const teamsIdsPromise = fetchAllTeamIds();
   let data = (await fetchSchedule(currentDate)) as APIResponse;
-  
-  if (data.events.length === 0 && !searchParams.date) {
+  const events = data.events ?? [];
+  const league = data.leagues?.[0] ?? { calendar: [], abbreviation: 'ncaaw' };
 
-    const availableDates = data.leagues[0].calendar;
+  if (events.length === 0 && !searchParams.date) {
+
+    const availableDates = league.calendar;
     
     if (availableDates && availableDates.length > 0) {
       const today = parseDateString(currentDate);
@@ -99,7 +102,9 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
     }
   }
   
-  const teamsIds = await fetchAllTeamIds();
+  const teamsIds = await teamsIdsPromise;
+  const displayEvents = data.events ?? [];
+  const displayLeague = data.leagues?.[0] ?? league;
   return (
     <main>
       <Suspense fallback={null}>
@@ -120,7 +125,7 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
           <div className="flex flex-col lg:flex-row items-center justify-center 2xl:justify-between gap-16 sm:gap-2 lg:gap-4 xl:gap-8 3xl:gap-9 ">
             <div className="max-w-sm sm:max-w-lg md:max-w-xl lg:max-w-[33.5rem] xl:max-w-[39.5rem] 2xl:max-w-[44.5rem] 3xl:max-w-[62rem]">
               <Suspense fallback={null}>
-                <DateSelector league={data.leagues[0]} />
+                <DateSelector league={displayLeague} />
               </Suspense>
             </div>
             <div>
@@ -130,7 +135,7 @@ export default async function NCAAWPage(props: { searchParams: SearchParamsType 
             </div>
           </div>
 
-          <NCAAWSchedule events={data.events} league={data.leagues[0].abbreviation.toLowerCase()} />
+          <NCAAWSchedule events={displayEvents} league={displayLeague.abbreviation.toLowerCase()} />
         </div>
 
         <div className="w-full lg:w-72 xl:w-80 shrink-0 justify-self-end">

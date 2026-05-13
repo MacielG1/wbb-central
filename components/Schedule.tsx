@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ScheduleRow from './ScheduleRow';
 import { Competitor } from '@/types/espn';
 import { get, set } from 'idb-keyval';
 import LoadingSpinner from './LoadingSpinner';
 import { Switch } from '@/components/ui/switch';
-import getFavorites from '@/lib/getFavorites';
-import { useRouter } from 'next/navigation';
+import getFavorites, { FAVORITES_UPDATED_EVENT } from '@/lib/getFavorites';
 
 interface FilterToggleProps {
   onToggle: () => void;
@@ -90,14 +89,16 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
   const [showOnlyMarchMadness, setShowOnlyMarchMadness] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [events, setEvents] = useState(initialEvents);
-  const router = useRouter();
+  const [favoriteTeamIds, setFavoriteTeamIds] = useState<Record<string, boolean>>({});
 
-  const hasMarchMadnessGames = events.some(game => 
-    game.competitions[0].notes?.some((note: any) => 
-      note.type === "event" && (note.headline?.includes("NCAA") && note.headline?.includes("Championship")) || 
+  function isMarchMadnessGame(game: any) {
+    return game.competitions?.[0]?.notes?.some((note: any) =>
+      (note.type === "event" && note.headline?.includes("NCAA") && note.headline?.includes("Championship")) ||
       note.headline?.includes("March Madness")
-    )
-  );
+    );
+  }
+
+  const hasMarchMadnessGames = events.some(isMarchMadnessGame);
 
   useEffect(() => {
     const loadStoredValues = async () => {
@@ -118,6 +119,20 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
     setEvents(initialEvents);
   }, [initialEvents]);
 
+  useEffect(() => {
+    function updateFavorites() {
+      const favorites = getFavorites(league);
+      const favoriteIds: Record<string, boolean> = {};
+      Object.keys(favorites).forEach((id) => {
+        favoriteIds[id] = true;
+      });
+      setFavoriteTeamIds(favoriteIds);
+    }
+
+    updateFavorites();
+    window.addEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+    return () => window.removeEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+  }, [league]);
 
   function handleToggle() {
     const newValue = !showOnlyTop25;
@@ -134,19 +149,13 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
   const hasNoGamesToShow =
     events.length > 0 &&
     !events.some((game) => {
-      const competitors = game.competitions[0].competitors;
+      const competitors = game.competitions?.[0]?.competitors ?? [];
       const hasTop25Team = competitors.some((team: Competitor) => (team.curatedRank && team.curatedRank.current ? team.curatedRank.current <= 25 : false));
-      const hasFavoriteTeam = competitors.some((team: Competitor) => {
-        const favorites = getFavorites();
-        return favorites[team.team.id];
-      });
-      const isMarchMadnessGame = game.competitions[0].notes?.some((note: any) => 
-        note.type === "event" && (note.headline?.includes("NCAA") && note.headline?.includes("Championship")) || 
-        note.headline?.includes("March Madness")
-      );
+      const hasFavoriteTeam = competitors.some((team: Competitor) => favoriteTeamIds[team.team.id]);
+      const isTournamentGame = isMarchMadnessGame(game);
 
       if (showOnlyMarchMadness && hasMarchMadnessGames) {
-        return isMarchMadnessGame;
+        return isTournamentGame;
       }
       if (showOnlyTop25) {
         return hasTop25Team || hasFavoriteTeam;
@@ -154,24 +163,18 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
       return true;
     });
 
-  // Sort games by status: in progress -> upcoming -> completed
-  const sortedEvents = [...events].filter(game => {
-    if (!showOnlyMarchMadness && !showOnlyTop25) return true;
-    
-    const competitors = game.competitions[0].competitors;
-    const hasTop25Team = competitors.some((team: Competitor) => (team.curatedRank && team.curatedRank.current ? team.curatedRank.current <= 25 : false));
-    const hasFavoriteTeam = competitors.some((team: Competitor) => {
-      const favorites = getFavorites();
-      return favorites[team.team.id];
-    });
-    const isMarchMadnessGame = game.competitions[0].notes?.some((note: any) => 
-      note.type === "event" && note.headline?.includes("NCAA") && note.headline?.includes("Championship")
-    );
+  const sortedEvents = useMemo(() => {
+    return [...events].filter(game => {
+      if (!showOnlyMarchMadness && !showOnlyTop25) return true;
 
-    if (showOnlyMarchMadness && hasMarchMadnessGames) return isMarchMadnessGame;
-    if (showOnlyTop25) return hasTop25Team || hasFavoriteTeam;
-    return true;
-  }).sort((a, b) => {
+      const competitors = game.competitions?.[0]?.competitors ?? [];
+      const hasTop25Team = competitors.some((team: Competitor) => (team.curatedRank && team.curatedRank.current ? team.curatedRank.current <= 25 : false));
+      const hasFavoriteTeam = competitors.some((team: Competitor) => favoriteTeamIds[team.team.id]);
+
+      if (showOnlyMarchMadness && hasMarchMadnessGames) return isMarchMadnessGame(game);
+      if (showOnlyTop25) return hasTop25Team || hasFavoriteTeam;
+      return true;
+    }).sort((a, b) => {
     const aStatus = a.status.type;
     const bStatus = b.status.type;
 
@@ -190,7 +193,8 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
     }
 
     return 0;
-  });
+    });
+  }, [events, favoriteTeamIds, hasMarchMadnessGames, showOnlyMarchMadness, showOnlyTop25]);
 
   if (isLoading) {
     return (
@@ -223,6 +227,7 @@ export default function Schedule({ events: initialEvents, league }: ScheduleProp
               game={game} 
               league={league} 
               showOnlyTop25={showOnlyTop25} 
+              favoriteTeamIds={favoriteTeamIds}
             />
           ))
         )}

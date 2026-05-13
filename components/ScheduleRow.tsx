@@ -4,18 +4,18 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Event, Competitor } from '@/types/espn';
-import { useEffect, useState, useMemo } from 'react';
-import getFavorites from '@/lib/getFavorites';
-import fetchTeamData from '@/utils/NCAAW/fetchTeamData';
 import { useRouter } from 'next/navigation';
 import { StarIcon } from 'lucide-react';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
 import allTeamsData from '@/utils/NCAAW/allTeamsData.json';
 
+const allTeamsById = new Map(allTeamsData.map((team) => [team.id, team]));
+
 interface ScheduleRowProps {
   game: Event;
   league: string;
   showOnlyTop25?: boolean;
+  favoriteTeamIds?: Record<string, boolean>;
 }
 
 interface TeamDisplayProps {
@@ -30,8 +30,6 @@ interface TeamDisplayProps {
   logo: string;
   rank?: number;
   score?: string;
-  isHome?: boolean;
-  statistics?: { name: string; displayValue: string }[];
   competitor: Competitor;
   isCompleted: boolean;
   isInProgress: boolean;
@@ -100,35 +98,12 @@ function TeamDisplay({ team, logo, rank, score, competitor, isCompleted, isInPro
   );
 }
 
-export default function ScheduleRow({ game, league, showOnlyTop25 = false }: ScheduleRowProps) {
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const competition = game.competitions[0];
-  const homeTeam = competition.competitors.find((team: Competitor) => team.homeAway === 'home');
-  const awayTeam = competition.competitors.find((team: Competitor) => team.homeAway === 'away');
+export default function ScheduleRow({ game, league, showOnlyTop25 = false, favoriteTeamIds = {} }: ScheduleRowProps) {
+  const competition = game.competitions?.[0];
+  const competitors = competition?.competitors ?? [];
+  const homeTeam = competitors.find((team: Competitor) => team.homeAway === 'home');
+  const awayTeam = competitors.find((team: Competitor) => team.homeAway === 'away');
   const router = useRouter();
-
-  useEffect(() => {
-    const favs = getFavorites(league);
-
-    const favsBooleanMap: Record<string, boolean> = {};
-    Object.keys(favs).forEach((id) => {
-      favsBooleanMap[id] = true;
-    });
-    setFavorites(favsBooleanMap);
-
-    const homeTeamId = homeTeam?.team?.id;
-    const awayTeamId = awayTeam?.team?.id;
-    const isHomeTeamFavorite = homeTeamId ? favsBooleanMap[homeTeamId] : false;
-    const isAwayTeamFavorite = awayTeamId ? favsBooleanMap[awayTeamId] : false;
-
-    if (isHomeTeamFavorite || isAwayTeamFavorite) {
-      const teamsToFetch = [];
-      if (isHomeTeamFavorite && homeTeamId) teamsToFetch.push(homeTeamId);
-      if (isAwayTeamFavorite && awayTeamId) teamsToFetch.push(awayTeamId);
-
-      Promise.all(teamsToFetch.map((id) => fetchTeamData(id))).catch((error) => console.error('Error prefetching favorite teams:', error));
-    }
-  }, [homeTeam?.team?.id, awayTeam?.team?.id]);
 
   if (!homeTeam || !awayTeam) return null;
 
@@ -137,7 +112,7 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false }: Sch
     const homeTeamRank = homeTeam.curatedRank?.current;
     const awayTeamRank = awayTeam.curatedRank?.current;
     const isTop25Game = (homeTeamRank && homeTeamRank <= 25) || (awayTeamRank && awayTeamRank <= 25);
-    const isAnyTeamFavorite = favorites[homeTeam.team.id] || favorites[awayTeam.team.id];
+    const isAnyTeamFavorite = favoriteTeamIds[homeTeam.team.id] || favoriteTeamIds[awayTeam.team.id];
     if (!isTop25Game && !isAnyTeamFavorite) return null;
   }
 
@@ -146,8 +121,8 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false }: Sch
   const isPostponed = game.status.type.id === '6';
 
   // Look up teams in allTeamsData for correct logos (same as rankings) - skip for WNBA to avoid NCAAW ID collisions
-  const homeTeamFromData = useMemo(() => league !== 'wnba' ? allTeamsData.find((t) => t.id === homeTeam.team.id) : null, [homeTeam.team.id, league]);
-  const awayTeamFromData = useMemo(() => league !== 'wnba' ? allTeamsData.find((t) => t.id === awayTeam.team.id) : null, [awayTeam.team.id, league]);
+  const homeTeamFromData = league !== 'wnba' ? allTeamsById.get(homeTeam.team.id) : null;
+  const awayTeamFromData = league !== 'wnba' ? allTeamsById.get(awayTeam.team.id) : null;
 
   const homeLogoIndex = DARK_COLORED_LOGOS.includes(homeTeam.team.displayName) ? 1 : 0;
   const awayLogoIndex = DARK_COLORED_LOGOS.includes(awayTeam.team.displayName) ? 1 : 0;
@@ -184,9 +159,9 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false }: Sch
         'sm:nth-[2n]:border-l sm:odd:border-l sm:even:border-r',
         {
           '[&]:border-yellow-400 dark:[&]:border-yellow-600/50 [&]:border-t [&]:border-l [&]:border-r sm:[&]:border-r':
-            favorites[homeTeam.team.id] || favorites[awayTeam.team.id],
-          'first:border-neutral-200 dark:first:border-neutral-800': !favorites[homeTeam.team.id] && !favorites[awayTeam.team.id],
-          'sm:last:odd:border-r sm:last:odd:w-[calc(100%+1px)]': !favorites[homeTeam.team.id] && !favorites[awayTeam.team.id],
+            favoriteTeamIds[homeTeam.team.id] || favoriteTeamIds[awayTeam.team.id],
+          'first:border-neutral-200 dark:first:border-neutral-800': !favoriteTeamIds[homeTeam.team.id] && !favoriteTeamIds[awayTeam.team.id],
+          'sm:last:odd:border-r sm:last:odd:w-[calc(100%+1px)]': !favoriteTeamIds[homeTeam.team.id] && !favoriteTeamIds[awayTeam.team.id],
         }
       )}
     >
@@ -220,27 +195,24 @@ export default function ScheduleRow({ game, league, showOnlyTop25 = false }: Sch
           logo={awayTeamLogo}
           rank={awayTeamRank}
           score={isPostponed ? undefined : awayTeam.score}
-          statistics={awayTeam.statistics}
           competitor={awayTeam}
           isCompleted={isCompleted}
           isInProgress={isInProgress}
           otherTeamScore={isPostponed ? undefined : homeTeam.score || '0'}
           league={league}
-          isFavorite={favorites[awayTeam.team.id]}
+          isFavorite={favoriteTeamIds[awayTeam.team.id]}
         />
         <TeamDisplay
           team={homeTeam.team}
           logo={homeTeamLogo}
           rank={homeTeamRank}
           score={isPostponed ? undefined : homeTeam.score}
-          isHome={true}
-          statistics={homeTeam.statistics}
           competitor={homeTeam}
           isCompleted={isCompleted}
           isInProgress={isInProgress}
           otherTeamScore={isPostponed ? undefined : awayTeam.score || '0'}
           league={league}
-          isFavorite={favorites[homeTeam.team.id]}
+          isFavorite={favoriteTeamIds[homeTeam.team.id]}
         />
       </div>
 

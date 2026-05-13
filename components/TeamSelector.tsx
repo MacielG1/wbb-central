@@ -6,21 +6,12 @@ import Image from 'next/image';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { DARK_COLORED_LOGOS } from '@/lib/consts';
-import getFavorites from '@/lib/getFavorites';
-
-const formatTeamName = (name: string) => {
-  console.log(name);
-  return name
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
+import getFavorites, { FAVORITES_UPDATED_EVENT } from '@/lib/getFavorites';
 
 export default function TeamSelector({
   allTeams,
   teamId,
   league,
-  className,
   maxWidth,
 }: {
   allTeams: any[];
@@ -32,19 +23,17 @@ export default function TeamSelector({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [favorites, setFavorites] = useState<Record<string, unknown>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedTeam = teamId ? allTeams.find((team) => team.id === teamId) : null;
-  const selectedTeamLogoIndex = selectedTeam && DARK_COLORED_LOGOS.includes(selectedTeam.displayName) ? 1 : 0;
-
-  const favorites = getFavorites(league);
 
   const sortedTeams = useMemo(() => {
     const favoriteTeams = allTeams.filter((team) => favorites[team.id]);
     const nonFavoriteTeams = allTeams.filter((team) => !favorites[team.id]);
     return [...favoriteTeams, ...nonFavoriteTeams];
-  }, [allTeams, favorites, league]);
+  }, [allTeams, favorites]);
 
   const filteredTeams = useMemo(
     () => sortedTeams.filter((team) => team.displayName.toLowerCase().includes(searchQuery.toLowerCase())),
@@ -68,6 +57,16 @@ export default function TeamSelector({
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    function updateFavorites() {
+      setFavorites(getFavorites(league));
+    }
+
+    updateFavorites();
+    window.addEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+    return () => window.removeEventListener(FAVORITES_UPDATED_EVENT, updateFavorites);
+  }, [league]);
 
   function selectTeam(teamId: string) {
     router.push(`/${league}/${teamId}`);
