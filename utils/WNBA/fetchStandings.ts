@@ -43,30 +43,22 @@ export async function fetchWNBAStandings(): Promise<{ standings: WNBATeamStandin
   cacheLife('minutes');
   const currentYear = new Date().getFullYear();
 
-  // Try current year regular-season standings first.
-  const regularSeason = await fetchStandingsForYear(currentYear, 2);
-  const hasRecords = regularSeason.some((t) => t.wins > 0 || t.losses > 0);
-
-  if (regularSeason.length > 0 && hasRecords) {
-    return { standings: regularSeason, season: currentYear };
-  }
-
-  // Regular season hasn't started, OR ESPN's regular-season endpoint is returning
-  // all-zero records (known delay early in the season). Fall back to type=0 (overall)
-  // which mirrors what ESPN's standings page actually displays. If regular season truly
-  // hasn't started (no team has any wins/losses), zero out so we don't show preseason.
+  // Use type=0 (overall) — this is the real league standings ESPN's page displays.
+  // NOTE: type=2 returns the Commissioner's Cup standings (a separate in-season
+  // tournament with only a handful of games), NOT the regular-season records.
   const overall = await fetchStandingsForYear(currentYear, 0);
   const overallHasRecords = overall.some((t) => t.wins > 0 || t.losses > 0);
 
   if (overall.length > 0) {
-    if (regularSeason.length > 0 && !hasRecords && overallHasRecords) {
+    if (overallHasRecords) {
       return { standings: overall, season: currentYear };
     }
+    // True preseason: zero out records so we don't show preseason data.
     const zeroed = overall.map((t) => ({ ...t, rank: 0, wins: 0, losses: 0, winPct: '0.000' }));
     return { standings: zeroed, season: currentYear };
   }
 
   // Truly nothing for current year — fall back to previous year's final standings.
-  const prev = await fetchStandingsForYear(currentYear - 1, 2);
+  const prev = await fetchStandingsForYear(currentYear - 1, 0);
   return { standings: prev, season: currentYear - 1 };
 }
