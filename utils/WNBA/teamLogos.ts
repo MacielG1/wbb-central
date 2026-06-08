@@ -15,9 +15,11 @@ export const getTeamLogoUrl = (teamAbbr: string): string => {
     MIN: 'min',
     NY: 'ny',
     NYL: 'ny',
+    POR: 'por',
     PHO: 'phx',
     PHX: 'phx',
     SEA: 'sea',
+    TOR: 'tor',
     WAS: 'was',
     WSH: 'was',
   };

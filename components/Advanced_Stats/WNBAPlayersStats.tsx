@@ -33,9 +33,11 @@ const getFullTeamName = (teamAbbr: string): string => {
     MIN: 'Minnesota Lynx',
     NY: 'New York Liberty',
     NYL: 'New York Liberty',
+    POR: 'Portland Fire',
     PHO: 'Phoenix Mercury',
     PHX: 'Phoenix Mercury',
     SEA: 'Seattle Storm',
+    TOR: 'Toronto Tempo',
     WAS: 'Washington Mystics',
     WSH: 'Washington Mystics',
   };
